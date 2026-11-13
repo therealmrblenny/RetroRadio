@@ -1,0 +1,145 @@
+<title>Radio Parts Run</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single phone-first column; LED-marquee header, grouped checklists. Stealth black with blue LED accent. */
+:root{
+  --bg:#f3f5f8; --panel:#ffffff; --fg:#14181f; --muted:#5b6575; --line:#dde2ea;
+  --led:#1f6fff; --led-glow:rgba(31,111,255,.18); --warn:#a35a00; --done:#8a93a3;
+  --display:"VT323",ui-monospace,monospace; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#07090d; --panel:#10141b; --fg:#e4e9f2; --muted:#8b95a7; --line:#1f2632;
+  --led:#4d8dff; --led-glow:rgba(77,141,255,.28); --warn:#f0a440; --done:#5a6474; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#07090d; --panel:#10141b; --fg:#e4e9f2; --muted:#8b95a7; --line:#1f2632;
+  --led:#4d8dff; --led-glow:rgba(77,141,255,.28); --warn:#f0a440; --done:#5a6474; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body)}
+.wrap{max-width:640px;margin:0 auto;padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:22px}
+.marquee{background:#05070a;border-radius:10px;padding:14px 16px;overflow:hidden}
+.marquee h1{margin:0;font:400 38px/1 var(--display);color:#5b9bff;letter-spacing:.06em;
+  text-shadow:0 0 6px rgba(77,141,255,.8),0 0 18px rgba(77,141,255,.45);text-wrap:balance}
+.marquee p{margin:6px 0 0;font:400 18px/1.1 var(--display);color:#3a6cc4;letter-spacing:.05em}
+.progress{display:flex;align-items:center;gap:10px;font:500 13px var(--mono);color:var(--muted)}
+.bar{flex:1;height:6px;background:var(--line);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--led);box-shadow:0 0 8px var(--led-glow);transition:width .2s}
+section{display:flex;flex-direction:column;gap:8px}
+h2{margin:0;font:600 12px var(--body);text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+ul{list-style:none;margin:0;padding:0;background:var(--panel);border:1px solid var(--line);border-radius:10px}
+li+li{border-top:1px solid var(--line)}
+label{display:grid;grid-template-columns:22px 1fr auto;gap:12px;align-items:start;padding:12px 14px;cursor:pointer}
+input[type=checkbox]{appearance:none;width:20px;height:20px;margin:1px 0 0;border:2px solid var(--muted);border-radius:4px;display:grid;place-content:center;cursor:pointer}
+input[type=checkbox]:checked{border-color:var(--led);background:var(--led);box-shadow:0 0 8px var(--led-glow)}
+input[type=checkbox]:checked::after{content:"";width:9px;height:5px;border:2px solid #fff;border-top:0;border-right:0;transform:translateY(-1px) rotate(-45deg)}
+input:focus-visible{outline:2px solid var(--led);outline-offset:2px}
+.name{font-weight:600;min-width:0}
+.note{display:block;font-weight:400;font-size:13.5px;color:var(--muted);margin-top:2px}
+.note b{color:var(--warn);font-weight:600}
+.code{font:500 13px var(--mono);color:var(--led);white-space:nowrap;text-align:right}
+.qty{display:block;color:var(--muted);font-size:12px}
+li.done .name{color:var(--done);text-decoration:line-through}
+li.done .note{opacity:.6}
+.have{background:transparent;border:1px dashed var(--line)}
+.have li{padding:10px 14px;color:var(--muted)}
+.have li::before{content:"✓ ";color:var(--led)}
+.skip li{padding:10px 14px;color:var(--muted)}
+footer{font-size:13px;color:var(--muted)}
+button{font:500 13px var(--body);color:var(--muted);background:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="marquee" aria-label="Internet radio shopping list">
+    <h1>RADIO PARTS RUN</h1>
+    <p>HIFI-ESP32 · LED MARQUEE · STEALTH BLACK</p>
+  </div>
+
+  <div class="progress"><span id="count">0 / 0</span><div class="bar"><i id="fill"></i></div></div>
+
+  <section>
+    <h2>Electronics: Jaycar</h2>
+    <ul>
+      <li><label><input type="checkbox" id="xc3746"><span class="name">16×8 blue LED matrix<span class="note">Two side by side make the 32×8 marquee.</span></span><span class="code">XC3746<span class="qty">× 2</span></span></label></li>
+      <li><label><input type="checkbox" id="sr1230"><span class="name">Rotary encoder with pushbutton<span class="note">Check the shaft size (probably 6 mm) and whether it has a panel nut.</span></span><span class="code">SR1230<span class="qty">× 1</span></span></label></li>
+      <li><label><input type="checkbox" id="hk7011"><span class="name">29 mm black anodised knob<span class="note"><b>Test fit on the SR1230 shaft.</b> The bore is probably 1/4" (6.35 mm). If it wobbles, a layer of heatshrink on the shaft fixes it.</span></span><span class="code">HK7011<span class="qty">× 1</span></span></label></li>
+      <li><label><input type="checkbox" id="xc4486"><span class="name">Logic level converter<span class="note">2 channels each. We need 3: CLK, DIN1, DIN2.</span></span><span class="code">XC4486<span class="qty">× 2</span></span></label></li>
+      <li><label><input type="checkbox" id="pp2081"><span class="name">USB-C PD breakout (HUSB238)<span class="note">Ships set to 5 V. <b>Leave the jumpers alone</b> and measure it before connecting anything.</span></span><span class="code">PP2081<span class="qty">× 1</span></span></label></li>
+      <li><label><input type="checkbox" id="cap"><span class="name">470 µF electrolytic capacitor, 10 V or higher<span class="note">Goes across 5 V/GND near the matrices to smooth LED switching.</span></span><span class="code">—<span class="qty">× 1–2</span></span></label></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Wiring odds and ends</h2>
+    <ul>
+      <li><label><input type="checkbox" id="wire"><span class="name">Thin hookup wire, 26–30 AWG<span class="note">Rainbow ribbon cable works well. Thin wire is kinder to the surface pads.</span></span><span class="code">—</span></label></li>
+      <li><label><input type="checkbox" id="headers"><span class="name">Male header pins, 2.54 mm<span class="note">For the W5500 header holes on the board.</span></span><span class="code">—<span class="qty">1 strip</span></span></label></li>
+      <li><label><input type="checkbox" id="dupont"><span class="name">Female–female jumper leads<span class="note">For testing on the bench before final soldering.</span></span><span class="code">—<span class="qty">1 pack</span></span></label></li>
+      <li><label><input type="checkbox" id="stripboard"><span class="name">Small piece of stripboard<span class="note">A neat 5 V/GND bus to share power with the matrices, converters and board cable.</span></span><span class="code">—</span></label></li>
+      <li><label><input type="checkbox" id="heatshrink"><span class="name">Heatshrink, assorted sizes</span><span class="code">—</span></label></li>
+      <li><label><input type="checkbox" id="glue"><span class="name">Hot glue sticks<span class="note">Strain relief for the IO33/IO27/IO21 pad wires.</span></span><span class="code">—</span></label></li>
+      <li><label><input type="checkbox" id="flux"><span class="name">Flux pen, plus fine solder if you're low<span class="note">Makes the small surface pads much easier.</span></span><span class="code">—</span></label></li>
+      <li><label><input type="checkbox" id="meter"><span class="name">Multimeter, if you don't have one<span class="note"><b>Needed</b> to confirm the PP2081 outputs 5 V. A basic one is plenty.</span></span><span class="code">—</span></label></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Case: 3D printing</h2>
+    <ul>
+      <li><label><input type="checkbox" id="pla"><span class="name">Matte black PLA, 1.75 mm<span class="note">Body, panels and the pixel grid.</span></span><span class="code">—<span class="qty">1 kg</span></span></label></li>
+      <li><label><input type="checkbox" id="petg"><span class="name">Slic3D PETG Transparent<span class="note">Frosted diffuser for the display window. Jaycar's black PETGs are opaque, so skip those.</span></span><span class="code">TL6455<span class="qty">1 kg</span></span></label></li>
+      <li><label><input type="checkbox" id="inserts"><span class="name">M3 brass heat-set inserts</span><span class="code">—<span class="qty">1 pack</span></span></label></li>
+      <li><label><input type="checkbox" id="screws"><span class="name">M3 screws, 8–12 mm<span class="note">Grab a few M2.5 as well in case the matrix holes are small.</span></span><span class="code">—<span class="qty">1 pack</span></span></label></li>
+      <li><label><input type="checkbox" id="feet"><span class="name">Feet: TPU 95A or stick-on rubber feet<span class="note">Optional. Stops the box sliding when you turn the knob.</span></span><span class="code">—</span></label></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Elsewhere</h2>
+    <ul>
+      <li><label><input type="checkbox" id="tint"><span class="name">Car window tint film, 20–35%<span class="note">An off-cut from an auto shop. Goes over the PETG window for the black-when-off look. No rush, since we'll test the window first.</span></span><span class="code">—</span></label></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Already have</h2>
+    <ul class="have">
+      <li>USB-A to C cable (tested; to be cut for the internal power lead)</li>
+      <li>Microsoft 5 V / 3 A USB-C charger</li>
+      <li>Soldering iron</li>
+      <li>Amp (line in from the 3.5 mm out)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Don't need</h2>
+    <ul class="have skip">
+      <li>5.1 kΩ resistors (only for the PP2082)</li>
+      <li>AMS Lite</li>
+      <li>Opaque black PETG</li>
+    </ul>
+  </section>
+
+  <footer><button id="reset" type="button">Clear ticks</button></footer>
+</div>
+
+<script>
+(function(){
+  const KEY='radio-parts-run';
+  const boxes=[...document.querySelectorAll('input[type=checkbox]')];
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){}
+  function update(){
+    let n=0;
+    boxes.forEach(b=>{b.closest('li').classList.toggle('done',b.checked); if(b.checked)n++;});
+    document.getElementById('count').textContent=n+' / '+boxes.length;
+    document.getElementById('fill').style.width=(100*n/boxes.length)+'%';
+    try{localStorage.setItem(KEY,JSON.stringify(Object.fromEntries(boxes.map(b=>[b.id,b.checked]))))}catch(e){}
+  }
+  boxes.forEach(b=>{b.checked=!!saved[b.id]; b.addEventListener('change',update);});
+  document.getElementById('reset').addEventListener('click',()=>{boxes.forEach(b=>b.checked=false);update();});
+  update();
+})();
+</script>

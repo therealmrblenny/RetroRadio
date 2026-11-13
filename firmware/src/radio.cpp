@@ -1,0 +1,95 @@
+#include "radio.h"
+#include "config.h"
+#include <WiFi.h>
+#include "Audio.h"
+
+namespace {
+enum class Cmd : uint8_t { Play, Stop, Volume };
+struct Msg { Cmd cmd; uint8_t vol; char name[96]; char url[400]; };
+
+Audio audio;
+QueueHandle_t queue;
+SemaphoreHandle_t mtx;
+Radio::Snapshot state{};
+char curUrl[400] = "";
+uint32_t lastRetry = 0;
+
+struct Lock { Lock() { xSemaphoreTake(mtx, portMAX_DELAY); } ~Lock() { xSemaphoreGive(mtx); } };
+
+void onAudio(Audio::msg_t m) {
+  if (!m.msg) return;
+  switch (m.e) {
+    case Audio::evt_streamtitle: {
+      Lock l; strlcpy(state.title, m.msg, sizeof(state.title));
+      Serial.printf("NOW PLAYING: %s\n", m.msg); break;
+    }
+    case Audio::evt_bitrate: { Lock l; state.bitrate = atoi(m.msg); break; }
+    case Audio::evt_vu: case Audio::evt_spectrum: break;
+    case Audio::evt_info:
+      if (strstr(m.msg, "MP3Decoder")) { Lock l; strlcpy(state.codec, "MP3", sizeof(state.codec)); }
+      else if (strstr(m.msg, "AACDecoder")) { Lock l; strlcpy(state.codec, "AAC", sizeof(state.codec)); }
+      else if (strstr(m.msg, "FLACDecoder")) { Lock l; strlcpy(state.codec, "FLAC", sizeof(state.codec)); }
+      else if (strstr(m.msg, "OPUSDecoder")) { Lock l; strlcpy(state.codec, "OPUS", sizeof(state.codec)); }
+      Serial.printf("[audio] %s\n", m.msg); break;
+    default: Serial.printf("[%s] %s\n", m.s ? m.s : "?", m.msg); break;
+  }
+}
+
+void startStream() {
+  { Lock l; state.title[0] = 0; state.codec[0] = 0; state.bitrate = 0; state.sinceMs = millis(); }
+  lastRetry = millis();
+  audio.connecttohost(curUrl);
+}
+
+void task(void *) {
+  for (;;) {
+    Msg m;
+    while (xQueueReceive(queue, &m, 0) == pdTRUE) {
+      switch (m.cmd) {
+        case Cmd::Play:
+          strlcpy(curUrl, m.url, sizeof(curUrl));
+          { Lock l; strlcpy(state.name, m.name, sizeof(state.name)); state.wantPlaying = true; }
+          startStream();
+          break;
+        case Cmd::Stop:
+          audio.stopSong();
+          { Lock l; state.wantPlaying = false; state.title[0] = 0; }
+          break;
+        case Cmd::Volume: audio.setVolume(m.vol); break;
+      }
+    }
+    audio.loop();
+    bool running = audio.isRunning();
+    bool want;
+    { Lock l; state.running = running; want = state.wantPlaying; }
+    // Auto-reconnect: dropped streams or failed connects retry every 10s
+    if (want && !running && WiFi.isConnected() && millis() - lastRetry > 10000) {
+      Serial.println("[radio] stream not running - retrying");
+      startStream();
+    }
+    vTaskDelay(1);
+  }
+}
+
+void send(const Msg &m) { xQueueSend(queue, &m, pdMS_TO_TICKS(100)); }
+}  // namespace
+
+void Radio::begin() {
+  mtx = xSemaphoreCreateMutex();
+  queue = xQueueCreate(4, sizeof(Msg));
+  Audio::audio_info_callback = onAudio;
+  audio.setPinout(PIN_I2S_BCK, PIN_I2S_WS, PIN_I2S_DOUT);
+  audio.setVolumeSteps(VOL_MAX);
+  audio.setConnectionTimeout(5000, 8000);
+  xTaskCreatePinnedToCore(task, "radio", 12288, nullptr, 2, nullptr, 1);
+}
+
+void Radio::play(const char *name, const char *url) {
+  Msg m{}; m.cmd = Cmd::Play;
+  strlcpy(m.name, name, sizeof(m.name)); strlcpy(m.url, url, sizeof(m.url));
+  send(m);
+}
+void Radio::stop() { Msg m{}; m.cmd = Cmd::Stop; send(m); }
+void Radio::setVolume(uint8_t v) { Msg m{}; m.cmd = Cmd::Volume; m.vol = min<uint8_t>(v, VOL_MAX); send(m); }
+
+Radio::Snapshot Radio::snapshot() { Lock l; return state; }
