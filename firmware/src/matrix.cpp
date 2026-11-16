@@ -12,15 +12,22 @@ inline void dly() { delayMicroseconds(MTX_BIT_US); }
 
 // AIP1640 / TM1640 two-wire protocol: start = DIN falls while CLK high,
 // data bits LSB-first latched on CLK rising edge, stop = DIN rises while CLK high.
+// Idle state between transfers is CLK LOW + all DIN LOW. CLK is shared by both
+// modules, and an idle DIN held HIGH only by the level shifter's weak pull-up picks
+// up crosstalk from CLK edges, which the idle module reads as a false START.
+// Held LOW (actively driven by the shifter MOSFET) it can't make a falling edge.
 void startCond(int din) {
-  digitalWrite(din, HIGH); digitalWrite(PIN_MTX_CLK, HIGH); dly();
-  digitalWrite(din, LOW); dly();
+  digitalWrite(din, HIGH); dly();             // CLK is low: no condition
+  digitalWrite(PIN_MTX_CLK, HIGH); dly();
+  digitalWrite(din, LOW); dly();              // START
   digitalWrite(PIN_MTX_CLK, LOW); dly();
 }
 void stopCond(int din) {
   digitalWrite(PIN_MTX_CLK, LOW); digitalWrite(din, LOW); dly();
   digitalWrite(PIN_MTX_CLK, HIGH); dly();
-  digitalWrite(din, HIGH); dly();
+  digitalWrite(din, HIGH); dly();             // STOP
+  digitalWrite(PIN_MTX_CLK, LOW); dly();      // back to idle: CLK low first,
+  digitalWrite(din, LOW); dly();              // then DIN low (no START while CLK low)
 }
 void writeByte(int din, uint8_t b) {
   for (int i = 0; i < 8; i++) {
@@ -45,9 +52,9 @@ uint8_t rev8(uint8_t b) {
 }  // namespace
 
 void Matrix::begin() {
-  pinMode(PIN_MTX_CLK, OUTPUT);  digitalWrite(PIN_MTX_CLK, HIGH);
-  pinMode(PIN_MTX_DIN1, OUTPUT); digitalWrite(PIN_MTX_DIN1, HIGH);
-  pinMode(PIN_MTX_DIN2, OUTPUT); digitalWrite(PIN_MTX_DIN2, HIGH);
+  pinMode(PIN_MTX_CLK, OUTPUT);  digitalWrite(PIN_MTX_CLK, LOW);
+  pinMode(PIN_MTX_DIN1, OUTPUT); digitalWrite(PIN_MTX_DIN1, LOW);
+  pinMode(PIN_MTX_DIN2, OUTPUT); digitalWrite(PIN_MTX_DIN2, LOW);
   memset(last, 0, sizeof(last));
   dirty = true;
 }

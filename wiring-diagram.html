@@ -1,0 +1,307 @@
+<title>RetroRadio Wiring</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one dark "stealth black" bench sheet; two drawings (signals, power) then a pin checklist. Single dark theme by choice. */
+:root {
+  color-scheme: dark;
+  --bg: #0d0f14;
+  --panel: #151922;
+  --line: #2a3140;
+  --fg: #dfe4ee;
+  --muted: #8b94a7;
+  --led: #4da3ff;
+  --led-dim: #1a2433;
+  --v5: #ff5f5f;
+  --v33: #ffa94d;
+  --gnd: #a3abbd;
+  --clk: #ffe066;
+  --din1: #63e6be;
+  --din2: #74c0fc;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--display); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 32px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1 { font-size: 30px; margin: 0; letter-spacing: .02em; text-wrap: balance; }
+h1 span { color: var(--led); text-shadow: 0 0 12px color-mix(in srgb, var(--led) 60%, transparent); }
+h2 { font-size: 18px; margin: 0 0 4px; text-wrap: balance; }
+p { margin: 0; color: var(--muted); line-height: 1.55; max-width: 68ch; font-size: 15px; }
+.eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+section { display: grid; gap: 12px; }
+.fig { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 640px; height: auto; }
+svg text { font-family: var(--mono); fill: var(--fg); }
+svg .t { font-family: var(--display); font-weight: 700; font-size: 17px; }
+svg .s { fill: var(--muted); font-size: 11px; }
+svg .p { font-size: 12px; }
+svg .blk { fill: #11151d; stroke: #3a4458; stroke-width: 1.5; }
+svg .mtx { fill: #070a10; stroke: #2b4a78; stroke-width: 1.5; }
+svg .s2 .blk, svg .s2 .mtx { stroke-dasharray: 6 5; }
+svg .w { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+svg .w.s2l { stroke-dasharray: 9 7; }
+svg .gap { stroke: var(--panel); stroke-width: 11; }
+svg .pin { stroke: var(--bg); stroke-width: 1.5; }
+svg .zone { fill: var(--muted); font-size: 11px; letter-spacing: .12em; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 22px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.dash { background: repeating-linear-gradient(90deg, var(--muted) 0 6px, transparent 6px 10px); }
+table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+.tag { font-size: 10px; letter-spacing: .1em; padding: 2px 6px; border-radius: 4px; border: 1px dashed var(--muted); color: var(--muted); white-space: nowrap; }
+.tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; }
+.warn { display: grid; gap: 10px; }
+.warn div { border-left: 3px solid var(--v5); padding: 4px 0 4px 12px; color: var(--fg); font-size: 15px; line-height: 1.5; max-width: 72ch; }
+.warn div b { color: var(--v5); }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <div class="eyebrow">Bench test · step 1</div>
+    <h1>Retro<span>Radio</span> wiring</h1>
+    <p>Wire the 32×8 LED marquee to the HiFi-ESP32 through two XC4486 level converters. Use only the <b>TXI → TXO</b> pins on the converters: TXI is the 3.3V side, TXO the 5V side. The RXI/RXO pins only step down and won't work here. Pin order on the real modules differs from the drawing, so go by the printed labels.</p>
+  </header>
+
+  <section>
+    <div>
+      <h2>Signals</h2>
+      <p>Three data lines leave the board at 3.3V, get lifted to 5V by the converters, and drive the matrices. The clock is shared by both matrices.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 900 380" role="img" aria-label="Signal wiring: board CLK and MOSI through converter A to the left matrix, MISO through converter B to the right matrix, CLK shared">
+        <text class="zone" x="265" y="40" text-anchor="middle">3.3 V SIDE</text>
+        <text class="zone" x="565" y="40" text-anchor="middle">5 V SIDE</text>
+
+        <!-- board -->
+        <rect class="blk" x="20" y="60" width="180" height="280" rx="10"/>
+        <text class="t" x="36" y="92">HiFi-ESP32</text>
+        <text class="s" x="36" y="110">main board</text>
+        <text class="s" x="36" y="322">W5500 header pins →</text>
+        <text class="p" x="186" y="114" text-anchor="end">CLK · IO18</text>
+        <text class="p" x="186" y="174" text-anchor="end">MOSI · IO23</text>
+        <text class="p" x="186" y="294" text-anchor="end">MISO · IO19</text>
+
+        <!-- converter A -->
+        <rect class="blk" x="330" y="70" width="140" height="130" rx="8"/>
+        <text class="t" x="400" y="140" text-anchor="middle" style="font-size:15px">Converter A</text>
+        <text class="s" x="400" y="156" text-anchor="middle">XC4486</text>
+        <text class="p" x="340" y="114">TXI</text><text class="p" x="460" y="114" text-anchor="end">TXO</text>
+        <text class="s" x="400" y="96" text-anchor="middle">Cnan1</text>
+        <text class="p" x="340" y="190">TXI</text><text class="p" x="460" y="190" text-anchor="end">TXO</text>
+        <text class="s" x="400" y="178" text-anchor="middle">Cnan2</text>
+
+        <!-- converter B (stage 2) -->
+        <g class="s2">
+          <rect class="blk" x="330" y="240" width="140" height="100" rx="8"/>
+          <text class="t" x="400" y="268" text-anchor="middle" style="font-size:15px">Converter B</text>
+          <text class="p" x="340" y="294">TXI</text><text class="p" x="460" y="294" text-anchor="end">TXO</text>
+          <text class="s" x="400" y="286" text-anchor="middle">Cnan1</text>
+          <text class="s" x="400" y="326" text-anchor="middle">STAGE 2</text>
+        </g>
+
+        <!-- left matrix -->
+        <rect class="mtx" x="660" y="60" width="220" height="130" rx="8"/>
+        <text class="p" x="672" y="114">SCL</text>
+        <text class="p" x="672" y="154">SDA</text>
+        <g id="gridL"></g>
+        <text class="s" x="802" y="178" text-anchor="middle">LEFT · XC3746</text>
+
+        <!-- right matrix (stage 2) -->
+        <g class="s2">
+          <rect class="mtx" x="660" y="220" width="220" height="130" rx="8"/>
+          <text class="p" x="672" y="254">SCL</text>
+          <text class="p" x="672" y="294">SDA</text>
+          <g id="gridR"></g>
+          <text class="s" x="802" y="338" text-anchor="middle">RIGHT · STAGE 2</text>
+        </g>
+
+        <!-- wires -->
+        <path class="w" stroke="var(--clk)" d="M200 110 H330"/>
+        <path class="w" stroke="var(--clk)" d="M470 110 H660"/>
+        <path class="w s2l" stroke="var(--clk)" d="M600 110 V250 H660"/>
+        <path class="w" stroke="var(--din1)" d="M200 170 H330"/>
+        <path class="gap" d="M592 170 H608"/>
+        <path class="w" stroke="var(--din1)" d="M470 170 H620 V150 H660"/>
+        <path class="w s2l" stroke="var(--din2)" d="M200 290 H330"/>
+        <path class="w s2l" stroke="var(--din2)" d="M470 290 H660"/>
+        <circle cx="600" cy="110" r="5.5" fill="var(--clk)"/>
+        <g class="pins">
+          <circle class="pin" cx="200" cy="110" r="5" fill="var(--clk)"/><circle class="pin" cx="200" cy="170" r="5" fill="var(--din1)"/><circle class="pin" cx="200" cy="290" r="5" fill="var(--din2)"/>
+          <circle class="pin" cx="330" cy="110" r="5" fill="var(--clk)"/><circle class="pin" cx="330" cy="170" r="5" fill="var(--din1)"/><circle class="pin" cx="330" cy="290" r="5" fill="var(--din2)"/>
+          <circle class="pin" cx="470" cy="110" r="5" fill="var(--clk)"/><circle class="pin" cx="470" cy="170" r="5" fill="var(--din1)"/><circle class="pin" cx="470" cy="290" r="5" fill="var(--din2)"/>
+          <circle class="pin" cx="660" cy="110" r="5" fill="var(--clk)"/><circle class="pin" cx="660" cy="150" r="5" fill="var(--din1)"/>
+          <circle class="pin" cx="660" cy="250" r="5" fill="var(--clk)"/><circle class="pin" cx="660" cy="290" r="5" fill="var(--din2)"/>
+        </g>
+        <text class="s" x="535" y="102" text-anchor="middle">CLK</text>
+        <text class="s" x="530" y="162" text-anchor="middle">DIN1</text>
+        <text class="s" x="535" y="282" text-anchor="middle">DIN2</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--clk)"></i>CLK (shared)</span>
+      <span><i style="background:var(--din1)"></i>MOSI → left SDA</span>
+      <span><i style="background:var(--din2)"></i>MISO → right SDA</span>
+      <span>Matrix SCL = clock, SDA = data (AIP1640, not real I2C)</span>
+      <span><i class="dash"></i>stage 2, add after the left matrix works</span>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Power and ground</h2>
+      <p>The HUSB238 feeds 5V to the matrices and the converters' HV side. The board supplies 3.3V to the LV side. Every ground joins together.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 900 420" role="img" aria-label="Power wiring: charger to HUSB238, 5V to matrix VCC and converter HV, board 3.3V to converter LV, all grounds common">
+        <!-- sources -->
+        <rect class="blk" x="20" y="30" width="170" height="60" rx="8"/>
+        <text class="t" x="36" y="56" style="font-size:15px">USB-C charger</text>
+        <text class="s" x="36" y="75">5V · 3A</text>
+        <path class="w" stroke="#4a5368" stroke-width="7" d="M105 90 V140"/>
+        <text class="s" x="118" y="120">USB-C</text>
+
+        <rect class="blk" x="20" y="140" width="170" height="100" rx="8"/>
+        <text class="t" x="36" y="168" style="font-size:15px">HUSB238</text>
+        <text class="s" x="36" y="186">PD breakout</text>
+        <text class="s" x="36" y="226">5.3V measured</text>
+        <text class="p" x="178" y="174" text-anchor="end">+</text>
+        <text class="p" x="178" y="219" text-anchor="end">−</text>
+
+        <path class="w" stroke="var(--muted)" stroke-dasharray="4 6" stroke-width="2" d="M60 240 V300"/>
+        <text class="s" x="70" y="268">later: power-only</text>
+        <text class="s" x="70" y="282">cable (step 3)</text>
+
+        <rect class="blk" x="20" y="300" width="170" height="100" rx="8"/>
+        <text class="t" x="36" y="326" style="font-size:15px">HiFi-ESP32</text>
+        <text class="s" x="36" y="390">USB from PC for now</text>
+        <text class="p" x="178" y="334" text-anchor="end">3V3</text>
+        <text class="p" x="178" y="374" text-anchor="end">GND</text>
+
+        <!-- buses -->
+        <path class="w" stroke="var(--v5)" d="M300 45 V315"/>
+        <path class="w" stroke="var(--gnd)" d="M340 65 V370"/>
+        <path class="w" stroke="var(--v33)" d="M380 230 V340"/>
+
+        <!-- source lines -->
+        <path class="w" stroke="var(--v5)" d="M190 170 H300"/>
+        <path class="gap" d="M292 215 H308"/>
+        <path class="w" stroke="var(--gnd)" d="M190 215 H340"/>
+        <path class="gap" d="M332 330 H348"/>
+        <path class="w" stroke="var(--v33)" d="M190 330 H380"/>
+        <path class="w" stroke="var(--gnd)" d="M190 370 H340"/>
+        <text class="s" x="245" y="162" text-anchor="middle" style="fill:var(--v5)">5V</text>
+        <text class="s" x="245" y="207" text-anchor="middle">GND</text>
+        <text class="s" x="245" y="322" text-anchor="middle" style="fill:var(--v33)">3.3V</text>
+
+        <!-- stubs -->
+        <path class="w" stroke="var(--v5)" d="M300 45 H600"/>
+        <path class="gap" d="M332 115 H348"/><path class="w" stroke="var(--v5)" d="M300 115 H600"/>
+        <path class="gap" d="M332 205 H348"/><path class="w" stroke="var(--v5)" d="M300 205 H600"/>
+        <path class="gap" d="M332 315 H348 M372 315 H388"/><path class="w" stroke="var(--v5)" d="M300 315 H600"/>
+        <path class="w" stroke="var(--gnd)" d="M340 65 H600"/>
+        <path class="w" stroke="var(--gnd)" d="M340 135 H600"/>
+        <path class="gap" d="M372 255 H388"/><path class="w" stroke="var(--gnd)" d="M340 255 H600"/>
+        <path class="w" stroke="var(--gnd)" d="M340 365 H600"/>
+        <path class="w" stroke="var(--v33)" d="M380 230 H600"/>
+        <path class="w" stroke="var(--v33)" d="M380 340 H600"/>
+
+        <!-- junctions -->
+        <g>
+          <circle cx="300" cy="170" r="5.5" fill="var(--v5)"/><circle cx="300" cy="115" r="5.5" fill="var(--v5)"/><circle cx="300" cy="205" r="5.5" fill="var(--v5)"/>
+          <circle cx="340" cy="215" r="5.5" fill="var(--gnd)"/><circle cx="340" cy="135" r="5.5" fill="var(--gnd)"/><circle cx="340" cy="255" r="5.5" fill="var(--gnd)"/>
+          <circle cx="380" cy="330" r="5.5" fill="var(--v33)"/>
+        </g>
+
+        <!-- targets -->
+        <rect class="mtx" x="600" y="25" width="220" height="60" rx="8"/>
+        <text class="p" x="614" y="49">VCC</text><text class="p" x="614" y="69">GND</text>
+        <text class="t" x="806" y="61" text-anchor="end" style="font-size:14px">Left matrix</text>
+
+        <g class="s2">
+          <rect class="mtx" x="600" y="95" width="220" height="60" rx="8"/>
+          <text class="p" x="614" y="119">VCC</text><text class="p" x="614" y="139">GND</text>
+          <text class="t" x="806" y="124" text-anchor="end" style="font-size:14px">Right matrix</text>
+          <text class="s" x="806" y="141" text-anchor="end">stage 2</text>
+        </g>
+
+        <rect class="blk" x="600" y="185" width="220" height="90" rx="8"/>
+        <text class="p" x="614" y="209">HV</text><text class="p" x="614" y="234">LV</text><text class="p" x="614" y="259">GND</text>
+        <text class="t" x="806" y="235" text-anchor="end" style="font-size:14px">Converter A</text>
+
+        <g class="s2">
+          <rect class="blk" x="600" y="295" width="220" height="90" rx="8"/>
+          <text class="p" x="614" y="319">HV</text><text class="p" x="614" y="344">LV</text><text class="p" x="614" y="369">GND</text>
+          <text class="t" x="806" y="338" text-anchor="end" style="font-size:14px">Converter B</text>
+          <text class="s" x="806" y="355" text-anchor="end">stage 2</text>
+        </g>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--v5)"></i>5V from HUSB238</span>
+      <span><i style="background:var(--v33)"></i>3.3V from board</span>
+      <span><i style="background:var(--gnd)"></i>common ground</span>
+      <span>● joined &nbsp;·&nbsp; a break in a line = wires cross, not joined</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Before you power up</h2>
+    <div class="warn">
+      <div><b>LV is 3.3V, HV is 5V.</b> If they're swapped, 5V can feed back into the ESP32's pins.</div>
+      <div><b>One ground for everything.</b> The HUSB238 − and the board's header GND must be joined, or the display will show garbage.</div>
+      <div><b>Power-up order: charger first, then the board.</b> If the board is on first, its 3.3V leaks onto the 5V line through the converters (about 2.5V). The USB-C charger then refuses to switch on, and the matrix runs dim on the leak. In the finished radio the charger feeds everything, so this only matters on the bench.</div>
+      <div><b>The printed LV/HV labels are correct.</b> Ignore the online review that says they're reversed.</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Connection checklist</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>From</th><th>To</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><span class="dot" style="background:var(--clk)"></span>Board CLK (IO18)</td><td>Converter A Cnan1 TXI (LV side)</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--clk)"></span>Converter A Cnan1 TXO (HV side)</td><td>Left matrix SCL</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--din1)"></span>Board MOSI (IO23)</td><td>Converter A Cnan2 TXI (LV side)</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--din1)"></span>Converter A Cnan2 TXO (HV side)</td><td>Left matrix SDA</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--v33)"></span>Board 3V3</td><td>Converter A LV</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--v5)"></span>HUSB238 +</td><td>Converter A HV (unlabelled middle pin, HV side), left matrix VCC</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--gnd)"></span>HUSB238 −</td><td>Board header G pin, converter A GND (either), left matrix GND</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--din2)"></span>Board MISO (IO19)</td><td>Converter B Cnan1 TXI (LV side)</td><td><span class="tag">STAGE 2</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--din2)"></span>Converter B Cnan1 TXO (HV side)</td><td>Right matrix SDA</td><td><span class="tag">STAGE 2</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--clk)"></span>Left matrix SCL</td><td>Right matrix SCL</td><td><span class="tag">STAGE 2</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--v33)"></span>Board 3V3</td><td>Converter B LV</td><td><span class="tag">STAGE 2</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--v5)"></span>HUSB238 +</td><td>Converter B HV, right matrix VCC</td><td><span class="tag">STAGE 2</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--gnd)"></span>Ground</td><td>Converter B GND, right matrix GND</td><td><span class="tag">STAGE 2</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  // 3x5 glyphs for "1" and "2", drawn lit on a dim 16x8 LED grid
+  var glyph = { "1": ["010","110","010","010","111"], "2": ["111","001","111","100","111"] };
+  function grid(id, y0, ch) {
+    var g = document.getElementById(id), ns = "http://www.w3.org/2000/svg";
+    var x0 = 735, pitch = 8.6, rowPitch = 8.4, gx = 7, gy = 1;
+    for (var r = 0; r < 8; r++) for (var c = 0; c < 16; c++) {
+      var on = false, gr = r - gy, gc = c - gx;
+      if (gr >= 0 && gr < 5 && gc >= 0 && gc < 3) on = glyph[ch][gr][gc] === "1";
+      var d = document.createElementNS(ns, "circle");
+      d.setAttribute("cx", x0 + c * pitch); d.setAttribute("cy", y0 + r * rowPitch);
+      d.setAttribute("r", 2.6);
+      d.setAttribute("fill", on ? "var(--led)" : "var(--led-dim)");
+      if (on) d.setAttribute("style", "filter: drop-shadow(0 0 3px var(--led))");
+      g.appendChild(d);
+    }
+  }
+  grid("gridL", 92, "1");
+  grid("gridR", 252, "2");
+})();
+</script>

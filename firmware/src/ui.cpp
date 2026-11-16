@@ -16,6 +16,7 @@ portMUX_TYPE fbMux = portMUX_INITIALIZER_UNLOCKED;
 // persisted settings
 int vol = 8, idx = 0, bright = 3;
 bool standby = false;
+int testPat = 0;  // 0 = off; see drawTest()
 bool settingsDirty = false;
 uint32_t settingsChanged = 0;
 
@@ -162,9 +163,36 @@ void drawSleepy(uint32_t t) {
   }
 }
 
+// Wiring test patterns (web: /api/cmd?c=test&v=N, 0 = off)
+//  1 orientation: solid 3x3 block top-left, "L" left half, "R" right half
+//  2 column walker: one lit column stepping left->right
+//  3 row walker: one lit row stepping top->bottom
+//  4 all pixels on
+void drawTest(uint32_t now) {
+  switch (testPat) {
+    case 1:
+      for (int x = 0; x < 3; x++) for (int y = 0; y < 3; y++) cv.set(x, y);
+      cv.text(6, "L");
+      cv.text(22, "R");
+      break;
+    case 2: cv.column((now / 250) % MTX_W, 0xFF); break;
+    case 3: for (int x = 0; x < MTX_W; x++) cv.set(x, (now / 400) % MTX_H); break;
+    case 4: for (int x = 0; x < MTX_W; x++) cv.column(x, 0xFF); break;
+  }
+}
+
 void render() {
   uint32_t now = millis();
   cv.clear();
+  if (testPat) {
+    drawTest(now);
+    Matrix::setBrightness(bright);
+    portENTER_CRITICAL(&fbMux);
+    memcpy(shown, cv.col, MTX_W);
+    portEXIT_CRITICAL(&fbMux);
+    Matrix::show(cv.col);
+    return;
+  }
   switch (md) {
     case UI::Mode::Boot:
       scroll.set("HELLO"); scroll.draw(cv);
@@ -248,3 +276,4 @@ UI::Mode UI::mode() { return md; }
 int UI::volume() { return vol; }
 int UI::stationIndex() { return idx; }
 int UI::brightness() { return bright; }
+void UI::setTest(int pattern) { testPat = pattern; }

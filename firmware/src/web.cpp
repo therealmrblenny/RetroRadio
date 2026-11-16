@@ -57,6 +57,7 @@ void handleCmd(AsyncWebServerRequest *req) {
   else if (c == "prev") Input::post(Act::Prev);
   else if (c == "standby") Input::post(Act::Standby, v);
   else if (c == "bright") Input::post(Act::SetBrightness, v);
+  else if (c == "test") UI::setTest(v);
   else if (c == "key") {
     if (sv == "cw") Input::post(Act::TurnCW);
     else if (sv == "ccw") Input::post(Act::TurnCCW);

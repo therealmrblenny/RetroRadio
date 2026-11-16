@@ -12,4 +12,5 @@ Mode mode();
 int volume();
 int stationIndex();
 int brightness();
+void setTest(int pattern);       // wiring test pattern, 0 = off
 }
