@@ -1,4 +1,5 @@
 #include "web.h"
+#include "config.h"
 #include "web_ui.h"
 #include "ui.h"
 #include "radio.h"
@@ -41,6 +42,7 @@ void sendState(AsyncWebServerRequest *req) {
   d["playing"] = s.wantPlaying; d["running"] = s.running;
   d["net"] = Net::state() == Net::State::Online ? "online" : Net::state() == Net::State::SetupAP ? "setup hotspot" : "connecting";
   d["ip"] = Net::ip(); d["rssi"] = Net::rssi(); d["ssid"] = Net::ssid();
+  d["enc"] = String("A") + digitalRead(PIN_ENC_A) + " B" + digitalRead(PIN_ENC_B) + " SW" + digitalRead(PIN_ENC_SW);
   d["heap"] = ESP.getFreeHeap(); d["psram"] = ESP.getFreePsram(); d["uptime"] = millis() / 1000;
   d["fw"] = FW_VERSION; d["fb"] = hex;
   String out; serializeJson(d, out);

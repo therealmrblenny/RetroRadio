@@ -19,7 +19,7 @@
 #define PIN_ENC_A     33
 #define PIN_ENC_B     27
 #define PIN_ENC_SW    21
-#define ENC_STEPS_PER_DETENT 2  // SR1230: 30 detents / 15 pulses = 2 transitions per click
+#define ENC_STEPS_PER_DETENT 4  // XC3736 module: 1 full quadrature cycle (4 transitions) per click
 #define ENC_REVERSE   0         // set 1 if clockwise turns the volume down
 
 // ---- behaviour ----

@@ -18,6 +18,9 @@
   --clk: #ffe066;
   --din1: #63e6be;
   --din2: #74c0fc;
+  --encA: #b197fc;
+  --encB: #f783ac;
+  --sw: #69db7c;
   --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
@@ -39,9 +42,7 @@ svg .s { fill: var(--muted); font-size: 11px; }
 svg .p { font-size: 12px; }
 svg .blk { fill: #11151d; stroke: #3a4458; stroke-width: 1.5; }
 svg .mtx { fill: #070a10; stroke: #2b4a78; stroke-width: 1.5; }
-svg .s2 .blk, svg .s2 .mtx { stroke-dasharray: 6 5; }
 svg .w { fill: none; stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
-svg .w.s2l { stroke-dasharray: 9 7; }
 svg .gap { stroke: var(--panel); stroke-width: 11; }
 svg .pin { stroke: var(--bg); stroke-width: 1.5; }
 svg .zone { fill: var(--muted); font-size: 11px; letter-spacing: .12em; }
@@ -61,7 +62,7 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
 
 <div class="wrap">
   <header style="display:grid;gap:8px">
-    <div class="eyebrow">Bench test · step 1</div>
+    <div class="eyebrow">Bench test · display + knob</div>
     <h1>Retro<span>Radio</span> wiring</h1>
     <p>Wire the 32×8 LED marquee to the HiFi-ESP32 through two XC4486 level converters. Use only the <b>TXI → TXO</b> pins on the converters: TXI is the 3.3V side, TXO the 5V side. The RXI/RXO pins only step down and won't work here. Pin order on the real modules differs from the drawing, so go by the printed labels.</p>
   </header>
@@ -94,13 +95,12 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
         <text class="p" x="340" y="190">TXI</text><text class="p" x="460" y="190" text-anchor="end">TXO</text>
         <text class="s" x="400" y="178" text-anchor="middle">Cnan2</text>
 
-        <!-- converter B (stage 2) -->
+        <!-- converter B -->
         <g class="s2">
           <rect class="blk" x="330" y="240" width="140" height="100" rx="8"/>
           <text class="t" x="400" y="268" text-anchor="middle" style="font-size:15px">Converter B</text>
           <text class="p" x="340" y="294">TXI</text><text class="p" x="460" y="294" text-anchor="end">TXO</text>
           <text class="s" x="400" y="286" text-anchor="middle">Cnan1</text>
-          <text class="s" x="400" y="326" text-anchor="middle">STAGE 2</text>
         </g>
 
         <!-- left matrix -->
@@ -110,13 +110,13 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
         <g id="gridL"></g>
         <text class="s" x="802" y="178" text-anchor="middle">LEFT · XC3746</text>
 
-        <!-- right matrix (stage 2) -->
+        <!-- right matrix -->
         <g class="s2">
           <rect class="mtx" x="660" y="220" width="220" height="130" rx="8"/>
           <text class="p" x="672" y="254">SCL</text>
           <text class="p" x="672" y="294">SDA</text>
           <g id="gridR"></g>
-          <text class="s" x="802" y="338" text-anchor="middle">RIGHT · STAGE 2</text>
+          <text class="s" x="802" y="338" text-anchor="middle">RIGHT · XC3746</text>
         </g>
 
         <!-- wires -->
@@ -146,7 +146,6 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
       <span><i style="background:var(--din1)"></i>MOSI → left SDA</span>
       <span><i style="background:var(--din2)"></i>MISO → right SDA</span>
       <span>Matrix SCL = clock, SDA = data (AIP1640, not real I2C)</span>
-      <span><i class="dash"></i>stage 2, add after the left matrix works</span>
     </div>
   </section>
 
@@ -225,7 +224,6 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
           <rect class="mtx" x="600" y="95" width="220" height="60" rx="8"/>
           <text class="p" x="614" y="119">VCC</text><text class="p" x="614" y="139">GND</text>
           <text class="t" x="806" y="124" text-anchor="end" style="font-size:14px">Right matrix</text>
-          <text class="s" x="806" y="141" text-anchor="end">stage 2</text>
         </g>
 
         <rect class="blk" x="600" y="185" width="220" height="90" rx="8"/>
@@ -236,7 +234,6 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
           <rect class="blk" x="600" y="295" width="220" height="90" rx="8"/>
           <text class="p" x="614" y="319">HV</text><text class="p" x="614" y="344">LV</text><text class="p" x="614" y="369">GND</text>
           <text class="t" x="806" y="338" text-anchor="end" style="font-size:14px">Converter B</text>
-          <text class="s" x="806" y="355" text-anchor="end">stage 2</text>
         </g>
       </svg>
     </div>
@@ -245,6 +242,65 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
       <span><i style="background:var(--v33)"></i>3.3V from board</span>
       <span><i style="background:var(--gnd)"></i>common ground</span>
       <span>● joined &nbsp;·&nbsp; a break in a line = wires cross, not joined</span>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Knob</h2>
+      <p>The Jaycar XC3736 encoder module plugs onto female jumper leads, which are joined to wires soldered to the pads on the back of the board. Power the module from <b>3.3V, not 5V</b>: its on-board pull-ups would otherwise put 5V on the ESP32's pins. The firmware also enables the ESP32's internal pull-ups, which covers the SW pin. One click is one full quadrature cycle (ENC_STEPS_PER_DETENT 4). Verified working 2026-11-20.</p>
+    </div>
+    <div class="fig">
+      <svg viewBox="0 0 900 340" role="img" aria-label="Encoder module wiring: IO33 to CLK, IO27 to DT, IO21 to SW, 3.3V to plus, GND to minus">
+        <!-- board -->
+        <rect class="blk" x="20" y="30" width="200" height="280" rx="10"/>
+        <text class="t" x="36" y="62">HiFi-ESP32</text>
+        <text class="s" x="36" y="80">back pads</text>
+        <text class="p" x="206" y="84" text-anchor="end">IO33 · pad</text>
+        <text class="p" x="206" y="134" text-anchor="end">IO27 · pad</text>
+        <text class="p" x="206" y="184" text-anchor="end">IO21 · pad</text>
+        <text class="p" x="206" y="234" text-anchor="end">3V3</text>
+        <text class="p" x="206" y="284" text-anchor="end">GND · any G</text>
+
+        <!-- module -->
+        <rect class="blk" x="600" y="45" width="220" height="260" rx="10"/>
+        <circle cx="755" cy="175" r="42" fill="#0b0e14" stroke="#3a4458" stroke-width="1.5"/>
+        <circle cx="755" cy="175" r="14" fill="#1c2230" stroke="#4a5368" stroke-width="1.5"/>
+        <text class="t" x="755" y="240" text-anchor="middle" style="font-size:15px">XC3736</text>
+        <text class="s" x="755" y="258" text-anchor="middle">encoder module</text>
+        <text class="p" x="614" y="84">CLK</text>
+        <text class="p" x="614" y="134">DT</text>
+        <text class="p" x="614" y="184">SW</text>
+        <text class="p" x="614" y="234">+</text>
+        <text class="p" x="614" y="284">−</text>
+
+        <!-- wires -->
+        <path class="w" stroke="var(--encA)" d="M220 80 H600"/>
+        <path class="w" stroke="var(--encB)" d="M220 130 H600"/>
+        <path class="w" stroke="var(--sw)" d="M220 180 H600"/>
+        <path class="w" stroke="var(--v33)" d="M220 230 H600"/>
+        <path class="w" stroke="var(--gnd)" d="M220 280 H600"/>
+        <g>
+          <circle class="pin" cx="220" cy="80" r="5" fill="var(--encA)"/><circle class="pin" cx="600" cy="80" r="5" fill="var(--encA)"/>
+          <circle class="pin" cx="220" cy="130" r="5" fill="var(--encB)"/><circle class="pin" cx="600" cy="130" r="5" fill="var(--encB)"/>
+          <circle class="pin" cx="220" cy="180" r="5" fill="var(--sw)"/><circle class="pin" cx="600" cy="180" r="5" fill="var(--sw)"/>
+          <circle class="pin" cx="220" cy="230" r="5" fill="var(--v33)"/><circle class="pin" cx="600" cy="230" r="5" fill="var(--v33)"/>
+          <circle class="pin" cx="220" cy="280" r="5" fill="var(--gnd)"/><circle class="pin" cx="600" cy="280" r="5" fill="var(--gnd)"/>
+        </g>
+        <text class="s" x="400" y="72" text-anchor="middle">ENC A</text>
+        <text class="s" x="400" y="122" text-anchor="middle">ENC B</text>
+        <text class="s" x="400" y="172" text-anchor="middle">SWITCH</text>
+        <text class="s" x="400" y="222" text-anchor="middle">3.3V · NOT 5V</text>
+        <text class="s" x="400" y="272" text-anchor="middle">GND</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--encA)"></i>CLK → IO33</span>
+      <span><i style="background:var(--encB)"></i>DT → IO27</span>
+      <span><i style="background:var(--sw)"></i>SW → IO21</span>
+      <span><i style="background:var(--v33)"></i>+ → 3V3</span>
+      <span><i style="background:var(--gnd)"></i>− → GND</span>
+      <span>Clockwise turns volume down? Set ENC_REVERSE 1</span>
     </div>
   </section>
 
@@ -271,12 +327,17 @@ td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; ma
           <tr><td><span class="dot" style="background:var(--v33)"></span>Board 3V3</td><td>Converter A LV</td><td></td></tr>
           <tr><td><span class="dot" style="background:var(--v5)"></span>HUSB238 +</td><td>Converter A HV (unlabelled middle pin, HV side), left matrix VCC</td><td></td></tr>
           <tr><td><span class="dot" style="background:var(--gnd)"></span>HUSB238 −</td><td>Board header G pin, converter A GND (either), left matrix GND</td><td></td></tr>
-          <tr><td><span class="dot" style="background:var(--din2)"></span>Board MISO (IO19)</td><td>Converter B Cnan1 TXI (LV side)</td><td><span class="tag">STAGE 2</span></td></tr>
-          <tr><td><span class="dot" style="background:var(--din2)"></span>Converter B Cnan1 TXO (HV side)</td><td>Right matrix SDA</td><td><span class="tag">STAGE 2</span></td></tr>
-          <tr><td><span class="dot" style="background:var(--clk)"></span>Left matrix SCL</td><td>Right matrix SCL</td><td><span class="tag">STAGE 2</span></td></tr>
-          <tr><td><span class="dot" style="background:var(--v33)"></span>Board 3V3</td><td>Converter B LV</td><td><span class="tag">STAGE 2</span></td></tr>
-          <tr><td><span class="dot" style="background:var(--v5)"></span>HUSB238 +</td><td>Converter B HV, right matrix VCC</td><td><span class="tag">STAGE 2</span></td></tr>
-          <tr><td><span class="dot" style="background:var(--gnd)"></span>Ground</td><td>Converter B GND, right matrix GND</td><td><span class="tag">STAGE 2</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--din2)"></span>Board MISO (IO19)</td><td>Converter B Cnan1 TXI (LV side)</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--din2)"></span>Converter B Cnan1 TXO (HV side)</td><td>Right matrix SDA</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--clk)"></span>Left matrix SCL</td><td>Right matrix SCL</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--v33)"></span>Board 3V3</td><td>Converter B LV</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--v5)"></span>HUSB238 +</td><td>Converter B HV, right matrix VCC</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--gnd)"></span>Ground</td><td>Converter B GND, right matrix GND</td><td></td></tr>
+          <tr><td><span class="dot" style="background:var(--encA)"></span>Board IO33 pad</td><td>Encoder module CLK</td><td><span class="tag">KNOB</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--encB)"></span>Board IO27 pad</td><td>Encoder module DT</td><td><span class="tag">KNOB</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--sw)"></span>Board IO21 pad</td><td>Encoder module SW</td><td><span class="tag">KNOB</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--v33)"></span>Board 3V3</td><td>Encoder module + (not 5V)</td><td><span class="tag">KNOB</span></td></tr>
+          <tr><td><span class="dot" style="background:var(--gnd)"></span>Board GND</td><td>Encoder module −</td><td><span class="tag">KNOB</span></td></tr>
         </tbody>
       </table>
     </div>
