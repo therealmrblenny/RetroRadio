@@ -19,6 +19,9 @@ static std::vector<Step> script() {
   at(3000, "Tune: first station", [](uint32_t n) { setNowPlaying("Groove Salad", "", true, false); tuneTo(n, "Groove Salad", 0, 6); });
   at(1600, "", [](uint32_t) { setNowPlaying("Groove Salad", "", false, false); });
   at(900, "Song title arrives", [](uint32_t) { setNowPlaying("Groove Salad", "Bonobo - Kerala", false, false); });
+  at(15000, "Settled on the station name", [](uint32_t) {});
+  at(62000, "Long name: one pass a minute", [](uint32_t) {});
+  at(8000, "Next song: scrolls again", [](uint32_t) { setNowPlaying("Groove Salad", "Tycho - Awake", false, false); });
   at(9000, "Volume up x4", [](uint32_t n) { showVolume(n, 9, 21); });
   for (int v = 10; v <= 12; v++) at(160, "", [v](uint32_t n) { showVolume(n, v, 21); });
   at(1100, "Volume down x6", [](uint32_t n) { showVolume(n, 11, 21); });

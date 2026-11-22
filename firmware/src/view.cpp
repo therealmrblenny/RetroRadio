@@ -57,12 +57,16 @@ void drawIcon(Canvas &c, Icon i, int x, int y = 0, int layers = 3) {
 // Marquee: text in a horizontal region [x0, x0+w).
 //   Loop:  fits -> centred and still; too long -> hold, scroll 1 px/frame, loop with a gap.
 //   Once:  fits -> held; too long -> hold, scroll to the end, hold. durationMs() says how long.
+//   loops: Loop mode only, 0 = forever, else park at the start after that many passes.
+//   still: never moves (fits -> centred, too long -> shows the start).
 // ======================================================================
 struct Marquee {
   std::string text;
   uint32_t start = 0;
   bool loop = true;
   uint32_t holdMs = 1500;
+  int loops = 0;
+  bool still = false;
   static constexpr int GAP = 10;
 
   bool set(const std::string &t, uint32_t now) {
@@ -75,11 +79,18 @@ struct Marquee {
     if (tw <= w) return 2200;
     return holdMs + (tw - w) * FRAME_MS + 900;
   }
+  // a Loop marquee with `loops` set has made its passes and parked at the start
+  bool done(uint32_t now, int w = MTX_W) const {
+    int tw = width();
+    if (!loop || loops <= 0 || tw <= w) return false;
+    return now - start >= (uint32_t)loops * (holdMs + (tw + GAP) * FRAME_MS);
+  }
   // x offset of the text for this frame (relative to the region)
   int offset(uint32_t now, int w, bool centre, int &copyAt) const {
     int tw = width();
     copyAt = 0x7FFF;
     if (tw <= w) return centre ? (w - tw) / 2 : 0;
+    if (still || done(now, w)) return 0;
     uint32_t t = now - start;
     if (!loop) {
       if (t < holdMs) return 0;
@@ -95,7 +106,7 @@ struct Marquee {
   }
   bool moving(uint32_t now, int w) const {
     int tw = width();
-    if (tw <= w) return false;
+    if (tw <= w || still || done(now, w)) return false;
     uint32_t t = now - start;
     if (!loop) return t >= holdMs && (int)((t - holdMs) / FRAME_MS) < tw - w;
     return t % (holdMs + (tw + GAP) * FRAME_MS) >= holdMs;
@@ -183,6 +194,11 @@ void go(uint32_t now, Sc s, Tr t = Tr::None, uint32_t dur = 0) {
 std::string npName, npTitle;
 bool npBuffering = false, npStalled = false;
 Marquee playMq;
+Marquee nameMq;                // the station name alone, once the marquee settles
+bool npSettled = false;
+uint32_t nameNext = 0;         // when a too-long name next scrolls past once
+const int PLAY_SCROLLS = 2;    // passes of "name > title" before settling on the name
+const uint32_t NAME_REPEAT_MS = 60000;
 
 std::string playText() {
   std::string s = npName;
@@ -348,8 +364,25 @@ void drawPlayingText(uint32_t now, Canvas &c, int y) {
 }
 
 void drawPlaying(uint32_t now, Canvas &c) {
-  if (playMq.set(playText(), now) && now - scStart > 100) beginTransition(now, Tr::SlideUp, 300);
-  drawPlayingText(now, c);
+  playMq.loops = npStalled ? 0 : PLAY_SCROLLS;   // keep NO SIGNAL going
+  if (playMq.set(playText(), now)) {            // new song: scroll again
+    if (now - scStart > 100) beginTransition(now, Tr::SlideUp, 300);
+    npSettled = false;
+  }
+  if (!npSettled && playMq.done(now)) {         // parked on the name: drop the title
+    npSettled = true;
+    beginTransition(now, Tr::Dissolve, 500);
+    nameMq.loops = 1; nameMq.still = true; nameNext = now + NAME_REPEAT_MS;
+  }
+  if (npSettled) {
+    nameMq.set(npName, now);
+    if ((int32_t)(now - nameNext) >= 0) {      // long name: one slow pass, then rest again
+      nameMq.still = false; nameMq.start = now; nameNext = now + NAME_REPEAT_MS;
+    }
+    Canvas tmp; tmp.clear();
+    nameMq.draw(tmp, now);
+    for (int x = 0; x < MTX_W; x++) c.column(x, tmp.col[x] & 0x7F);
+  } else drawPlayingText(now, c);
   if (npStalled && hash(now / 3000) % 3 == 0 && now % 3000 < 160) noise(c, frameNo(now), 70);
   if (npBuffering) {                          // runner on the status row
     int x = (now / 60) % (MTX_W * 2);
@@ -405,6 +438,7 @@ void startTuning(uint32_t now, Tr t, uint32_t dur) {
   tune.needleFrom = needleAt;
   needleAt = (float)needleX(tune.pos, tune.count);
   tune.pending = false;
+  npSettled = false;
   playMq.text.clear();
   playMq.set(playText(), now);
   go(now, Sc::Tuning, t, dur);
@@ -415,7 +449,7 @@ void startTuning(uint32_t now, Tr t, uint32_t dur) {
 // ======================================================================
 // public API
 // ======================================================================
-void setFont(Font f) { fnt = f; playMq.text.clear(); browseMq.text.clear(); pageMq.text.clear(); }
+void setFont(Font f) { fnt = f; playMq.text.clear(); nameMq.text.clear(); browseMq.text.clear(); pageMq.text.clear(); }
 Font font() { return fnt; }
 void setUserBrightness(int b) { userBright = b; }
 
