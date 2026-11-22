@@ -12,7 +12,12 @@
 #define MTX_SWAP_MODULES 0 // set 1 if left/right halves are swapped
 #define MTX_FLIP_X    0    // set 1 if text is mirrored
 #define MTX_FLIP_Y    0    // set 1 if text is upside down
-#define MTX_W         32
+// The right module overlaps the left one in the case, leaving a gap exactly one LED
+// pitch wide between the halves. The canvas is 33 columns with that gap as column 16
+// (never shown), so scrolling text moves across the join at an even speed.
+#define MTX_PHYS_W    32
+#define MTX_GAP_COL   16   // set to -1 (and MTX_W to 32) if the modules sit edge to edge
+#define MTX_W         33   // logical canvas width
 #define MTX_H         8
 
 // ---- SR1230 rotary encoder on the back pads ----
@@ -25,6 +30,7 @@
 // ---- behaviour ----
 #define HOSTNAME      "retroradio"
 #define AP_SSID       "RetroRadio-Setup"
+#define TZ_INFO       "AWST-8"   // Perth (POSIX TZ; no daylight saving). Only used for the standby scenes
 #define VOL_MAX       21
 #define LONG_PRESS_MS 700
 #define BROWSE_TIMEOUT_MS 8000

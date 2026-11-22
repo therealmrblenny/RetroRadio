@@ -6,6 +6,7 @@
 #include "stations.h"
 #include "input.h"
 #include "net.h"
+#include "matrix.h"
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
@@ -17,34 +18,23 @@ namespace {
 AsyncWebServer server(80);
 uint32_t restartAt = 0;
 
-const char *modeName(UI::Mode m) {
-  switch (m) {
-    case UI::Mode::Boot: return "boot";
-    case UI::Mode::Connecting: return "connecting";
-    case UI::Mode::SetupAP: return "setup";
-    case UI::Mode::Playing: return "playing";
-    case UI::Mode::Browse: return "browse";
-    case UI::Mode::Standby: return "standby";
-  }
-  return "?";
-}
-
 void sendState(AsyncWebServerRequest *req) {
   auto s = Radio::snapshot();
   uint8_t fb[MTX_W]; UI::frame(fb);
   char hex[MTX_W * 2 + 1];
   for (int i = 0; i < MTX_W; i++) sprintf(hex + i * 2, "%02x", fb[i]);
   JsonDocument d;
-  d["mode"] = modeName(UI::mode());
+  d["mode"] = UI::modeName();
   d["vol"] = UI::volume(); d["volMax"] = VOL_MAX;
-  d["idx"] = UI::stationIndex(); d["bright"] = UI::brightness();
+  d["list"] = UI::listIndex(); d["idx"] = UI::stationIndex(); d["bright"] = UI::brightness();
+  d["compact"] = UI::compactFont();
   d["name"] = s.name; d["title"] = s.title; d["codec"] = s.codec; d["bitrate"] = s.bitrate;
   d["playing"] = s.wantPlaying; d["running"] = s.running;
   d["net"] = Net::state() == Net::State::Online ? "online" : Net::state() == Net::State::SetupAP ? "setup hotspot" : "connecting";
   d["ip"] = Net::ip(); d["rssi"] = Net::rssi(); d["ssid"] = Net::ssid();
   d["enc"] = String("A") + digitalRead(PIN_ENC_A) + " B" + digitalRead(PIN_ENC_B) + " SW" + digitalRead(PIN_ENC_SW);
   d["heap"] = ESP.getFreeHeap(); d["psram"] = ESP.getFreePsram(); d["uptime"] = millis() / 1000;
-  d["fw"] = FW_VERSION; d["fb"] = hex;
+  d["mtxUs"] = Matrix::lastPushUs(); d["fw"] = FW_VERSION; d["fb"] = hex;
   String out; serializeJson(d, out);
   req->send(200, "application/json", out);
 }
@@ -54,11 +44,15 @@ void handleCmd(AsyncWebServerRequest *req) {
   int v = req->hasParam("v") ? req->getParam("v")->value().toInt() : 0;
   String sv = req->hasParam("v") ? req->getParam("v")->value() : "";
   if (c == "vol") Input::post(Act::SetVolume, v);
-  else if (c == "play") Input::post(Act::Play, v);
+  else if (c == "play") {
+    int l = req->hasParam("l") ? req->getParam("l")->value().toInt() : UI::listIndex();
+    Input::post(Act::Play, (l << 16) | (v & 0xFFFF));
+  }
   else if (c == "next") Input::post(Act::Next);
   else if (c == "prev") Input::post(Act::Prev);
   else if (c == "standby") Input::post(Act::Standby, v);
   else if (c == "bright") Input::post(Act::SetBrightness, v);
+  else if (c == "font") Input::post(Act::SetFont, v);
   else if (c == "test") UI::setTest(v);
   else if (c == "key") {
     if (sv == "cw") Input::post(Act::TurnCW);
@@ -92,10 +86,20 @@ void Web::begin() {
     },
     nullptr,
     [](AsyncWebServerRequest *r, uint8_t *data, size_t len, size_t index, size_t total) {
-      if (total > 48 * 1024) return;
+      if (total > 64 * 1024) return;
       if (index == 0) { r->_tempObject = new String(); ((String *)r->_tempObject)->reserve(total); }
       ((String *)r->_tempObject)->concat((const char *)data, len);
     });
+  server.on("/api/try", HTTP_POST, [](AsyncWebServerRequest *r) {
+    if (!r->hasParam("url", true)) { r->send(400, "text/plain", "url required"); return; }
+    String u = r->getParam("url", true)->value();
+    if (!u.startsWith("http://") && !u.startsWith("https://")) { r->send(400, "text/plain", "bad url"); return; }
+    UI::tryStation(r->hasParam("name", true) ? r->getParam("name", true)->value() : u, u);
+    r->send(204);
+  });
+  server.on("/api/scan", HTTP_GET, [](AsyncWebServerRequest *r) {
+    r->send(200, "application/json", Net::scanJson());
+  });
   server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest *r) {
     if (!r->hasParam("ssid", true)) { r->send(400, "text/plain", "ssid required"); return; }
     Net::saveCredentials(r->getParam("ssid", true)->value(),

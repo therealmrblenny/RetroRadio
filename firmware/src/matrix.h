@@ -5,5 +5,6 @@ namespace Matrix {
 void begin();
 void setBrightness(uint8_t level);   // 0..7
 void setOn(bool on);
-void show(const uint8_t *cols);      // 32 columns, bit0 = top row
+void show(const uint8_t *cols);      // MTX_W logical columns (gap column dropped), bit0 = top row
+uint32_t lastPushUs();               // how long the last frame took to send (bit-banged)
 }

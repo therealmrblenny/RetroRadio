@@ -3,8 +3,9 @@
 // Everything that can drive the UI: the knob, the web page, or serial test keys.
 enum class Act : uint8_t {
   TurnCW, TurnCCW, Press, LongPress,   // knob (or simulated knob)
-  SetVolume, Play, Next, Prev, Standby, // direct commands (web)
-  SetBrightness, StationsChanged,
+  SetVolume, Play, Next, Prev, Standby, // direct commands (web). Play: v = list << 16 | station
+  SetBrightness, SetFont, StationsChanged,
+  PlayUrl,                              // audition a search result (see UI::tryStation)
 };
 struct Action { Act type; int32_t v; };
 

@@ -6,7 +6,7 @@ uint8_t brightness = 3;
 bool displayOn = true;
 uint8_t last[MTX_W];
 bool dirty = true;
-uint32_t lastPush = 0;
+uint32_t lastPush = 0, pushUs = 0;
 
 inline void dly() { delayMicroseconds(MTX_BIT_US); }
 
@@ -71,13 +71,18 @@ void Matrix::show(const uint8_t *cols) {
   memcpy(last, cols, MTX_W);
   dirty = false; lastPush = millis();
 
-  uint8_t phys[MTX_W];
-  for (int x = 0; x < MTX_W; x++) {
-    uint8_t c = cols[MTX_FLIP_X ? (MTX_W - 1 - x) : x];
+  uint32_t t0 = micros();
+  uint8_t phys[MTX_PHYS_W];
+  for (int x = 0; x < MTX_PHYS_W; x++) {
+    int px = MTX_FLIP_X ? (MTX_PHYS_W - 1 - x) : x;
+    int lx = (MTX_GAP_COL >= 0 && px >= MTX_GAP_COL) ? px + 1 : px;   // skip the hidden gap column
+    uint8_t c = cols[lx];
     phys[x] = MTX_FLIP_Y ? rev8(c) : c;
   }
   const uint8_t *left = phys, *right = phys + 16;
   if (MTX_SWAP_MODULES) std::swap(left, right);
   sendModule(PIN_MTX_DIN1, left);
   sendModule(PIN_MTX_DIN2, right);
+  pushUs = micros() - t0;
 }
+uint32_t Matrix::lastPushUs() { return pushUs; }

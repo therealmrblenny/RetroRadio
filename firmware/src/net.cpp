@@ -7,6 +7,7 @@
 #include <ArduinoOTA.h>
 #include <DNSServer.h>
 #include <Preferences.h>
+#include <ArduinoJson.h>
 
 namespace {
 Net::State st = Net::State::Connecting;
@@ -31,6 +32,7 @@ void beginSTA() {
 void startServices() {
   if (servicesUp) return;
   servicesUp = true;
+  configTzTime(TZ_INFO, "pool.ntp.org", "time.google.com");   // clock for the standby scenes
   MDNS.begin(HOSTNAME);
   MDNS.addService("http", "tcp", 80);
   ArduinoOTA.setHostname(HOSTNAME);
@@ -44,7 +46,7 @@ void startServices() {
 void startAP() {
   Serial.printf("WiFi: can't join '%s' - starting setup hotspot '%s'\n", wifiSsid.c_str(), AP_SSID);
   WiFi.disconnect();
-  WiFi.mode(WIFI_AP);
+  WiFi.mode(WIFI_AP_STA);              // STA side stays idle but lets the setup page scan
   WiFi.softAP(AP_SSID);
   dns.start(53, "*", WiFi.softAPIP());   // captive portal: every hostname -> us
   apStart = millis();
@@ -99,9 +101,38 @@ Net::State Net::state() { return st; }
 String Net::ip() { return st == State::SetupAP ? WiFi.softAPIP().toString() : WiFi.localIP().toString(); }
 int Net::rssi() { return st == State::Online ? WiFi.RSSI() : 0; }
 String Net::ssid() { return wifiSsid; }
+int Net::apClients() { return st == State::SetupAP ? WiFi.softAPgetStationNum() : 0; }
 
 void Net::saveCredentials(const String &s, const String &p) {
   Preferences pr; pr.begin("wifi", false);
-  pr.putString("ssid", s); pr.putString("pass", p);
+  pr.putString("ssid", s); pr.putString("pass", p); pr.putBool("fresh", true);
   pr.end();
+}
+
+bool Net::takeJustConfigured() {
+  Preferences p; p.begin("wifi", false);
+  bool f = p.getBool("fresh", false);
+  if (f) p.putBool("fresh", false);
+  p.end();
+  return f;
+}
+
+String Net::scanJson() {
+  int n = WiFi.scanComplete();
+  if (n == WIFI_SCAN_FAILED) { WiFi.scanNetworks(true); return "{\"scanning\":true}"; }
+  if (n == WIFI_SCAN_RUNNING) return "{\"scanning\":true}";
+  JsonDocument d;
+  JsonArray a = d["networks"].to<JsonArray>();
+  for (int i = 0; i < n; i++) {
+    String s = WiFi.SSID(i);
+    if (s.isEmpty()) continue;
+    bool dup = false;
+    for (JsonObject o : a) if (s == (const char *)o["ssid"]) { dup = true; break; }
+    if (dup) continue;
+    JsonObject o = a.add<JsonObject>();
+    o["ssid"] = s; o["rssi"] = WiFi.RSSI(i); o["open"] = WiFi.encryptionType(i) == WIFI_AUTH_OPEN;
+  }
+  WiFi.scanDelete();
+  String out; serializeJson(d, out);
+  return out;
 }

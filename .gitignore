@@ -5,3 +5,4 @@ firmware/include/secrets.h
 firmware/secrets.ini
 # 8MB factory flash dump - keep locally, not in git
 backup/*.bin
+firmware/sim/out/
