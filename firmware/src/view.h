@@ -41,6 +41,10 @@ void showStandby(uint32_t now, uint32_t seed);
 void wake(uint32_t now);                          // the creature hops (then the queued tuneTo)
 bool busy(uint32_t now);                          // an intro animation is still running
 
+// How `text` looks when the playing screen settles on it (for the web preview).
+// Returns its width in pixels; wider than the screen means it is cut off.
+int preview(const char *text, Canvas &out);
+
 // Draw the frame for `now`. Returns a brightness override (0..7) or -1 for the user setting.
 int render(uint32_t now, Canvas &out);
 }  // namespace View

@@ -46,6 +46,7 @@ ol,ul{list-style:none;margin:0;padding:0}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .seg button{border:0;border-radius:0;min-height:36px}
 .note{font-size:13px;color:var(--muted);margin:0}
+.ed{display:flex;flex-direction:column;gap:8px;width:100%}.ed label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}.ed .pv{width:100%;max-width:332px;height:auto;border-radius:6px}
 .err{color:var(--bad)}
 @media(max-width:480px){.knob{grid-template-columns:repeat(2,1fr)}.list li{flex-wrap:wrap}.list .acts{width:100%}}
 </style></head><body><div class="wrap">
@@ -133,15 +134,15 @@ let st={},lists=[],tab=0,volDrag=false,brDrag=false;
 
 // ---- LED marquee mirror ----
 const cv=$('mx'),cx=cv.getContext('2d'),P=20,R=7.2,GAP=16;   // column 16 = the hidden join between the modules
-function drawFb(hex){
-  cx.fillStyle='#000';cx.fillRect(0,0,cv.width,cv.height);
+function drawFb(hex,g=cx){
+  g.fillStyle='#000';g.fillRect(0,0,g.canvas.width,g.canvas.height);
   const n=hex.length/2;
   for(let x=0;x<n;x++){if(n>32&&x===GAP)continue;const c=parseInt(hex.substr(x*2,2),16)||0;
     for(let y=0;y<8;y++){const on=(c>>y)&1,px=x*P+12,py=y*P+12;
-      cx.beginPath();cx.arc(px,py,R,0,7);
-      if(on){cx.shadowColor='#4d8dff';cx.shadowBlur=14;cx.fillStyle='#8fb8ff';}else{cx.shadowBlur=0;cx.fillStyle='#0b1320';}
-      cx.fill();}}
-  cx.shadowBlur=0;
+      g.beginPath();g.arc(px,py,R,0,7);
+      if(on){g.shadowColor='#4d8dff';g.shadowBlur=14;g.fillStyle='#8fb8ff';}else{g.shadowBlur=0;g.fillStyle='#0b1320';}
+      g.fill();}}
+  g.shadowBlur=0;
 }
 
 // ---- state polling ----
@@ -197,8 +198,9 @@ function renderStations(){
   renderTabs();
   const others=lists.map((l,i)=>i===tab?'':`<option value="${i}">${esc(l.name)}</option>`).join('');
   $('stations').innerHTML=cur().stations.map((s,i)=>`<li><span class="n">${i+1}</span>
-   <span class="nm">${esc(s.name)}<small>${esc(s.url)}</small></span><span class="acts">
+   <span class="nm">${esc(s.name)}<small>${s.disp?'Screen: '+esc(s.disp)+' · ':''}${esc(s.url)}</small></span><span class="acts">
    <button class="sm" data-a="play" data-i="${i}" aria-label="Play">&#9654;</button>
+   <button class="sm" data-a="edit" data-i="${i}" aria-label="Edit name">&#9998;</button>
    <button class="sm" data-a="up" data-i="${i}" aria-label="Move up">&#9650;</button>
    <button class="sm" data-a="down" data-i="${i}" aria-label="Move down">&#9660;</button>
    ${others?`<select class="sm" data-a="move" data-i="${i}" aria-label="Move to list"><option value="">Move to…</option>${others}</select>`:''}
@@ -227,6 +229,7 @@ $('listbar').onclick=e=>{const b=e.target.closest('button');if(!b)return;const a
 $('stations').onclick=e=>{
   const b=e.target.closest('button');if(!b)return;const i=+b.dataset.i,s=cur().stations;
   if(b.dataset.a==='play')cmd('play',i,'&l='+tab);
+  else if(b.dataset.a==='edit')openEdit(b.closest('li'),i);
   else if(b.dataset.a==='up'&&i>0){[s[i-1],s[i]]=[s[i],s[i-1]];saveStations()}
   else if(b.dataset.a==='down'&&i<s.length-1){[s[i+1],s[i]]=[s[i],s[i+1]];saveStations()}
   else if(b.dataset.a==='del'){
@@ -235,6 +238,25 @@ $('stations').onclick=e=>{
 };
 $('stations').onchange=e=>{const sel=e.target.closest('select');if(!sel||sel.value==='')return;
   const [s]=cur().stations.splice(+sel.dataset.i,1);lists[+sel.value].stations.push(s);saveStations()};
+// ---- edit a station's name and its LED screen name ----
+function openEdit(li,i){
+  const s=cur().stations[i];
+  li.innerHTML=`<form class="ed">
+    <label>Name<input type="text" class="en" maxlength="90" value="${esc(s.name)}"></label>
+    <label>Screen name <small>(optional, shown on the radio instead)</small><input type="text" class="ed2" maxlength="40" value="${esc(s.disp||'')}" placeholder="${esc(s.name)}"></label>
+    <canvas class="pv" width="664" height="164" aria-label="How it looks on the radio"></canvas>
+    <p class="note pvn"></p>
+    <div class="row"><button type="submit">Save</button><button type="button" class="sm cx">Cancel</button></div></form>`;
+  const f=li.querySelector('form'),en=f.querySelector('.en'),dn=f.querySelector('.ed2'),pc=f.querySelector('.pv').getContext('2d');
+  let timer=0,seq=0;
+  const pv=()=>{clearTimeout(timer);timer=setTimeout(async()=>{const n=++seq,t=dn.value.trim()||en.value.trim();
+    try{const r=await api('/api/preview?t='+encodeURIComponent(t));if(n!==seq)return;drawFb(r.fb,pc);
+      f.querySelector('.pvn').textContent=r.w<=r.max?'Fits on the screen.':`Too long by ${r.w-r.max} px: it shows the start, and scrolls past once a minute.`}catch(e){}},150)};
+  en.oninput=dn.oninput=pv;pv();dn.focus();
+  f.querySelector('.cx').onclick=renderStations;
+  f.onsubmit=e=>{e.preventDefault();s.name=en.value.trim()||s.url;const d=dn.value.trim();
+    if(d&&d!==s.name)s.disp=d;else delete s.disp;saveStations()};
+}
 $('addf').onsubmit=e=>{e.preventDefault();const u=$('au').value.trim();if(!u)return;
   cur().stations.push({name:$('an').value.trim()||u,url:u});$('an').value=$('au').value='';saveStations()};
 

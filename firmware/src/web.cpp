@@ -7,6 +7,7 @@
 #include "input.h"
 #include "net.h"
 #include "matrix.h"
+#include "view.h"
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
@@ -96,6 +97,15 @@ void Web::begin() {
     if (!u.startsWith("http://") && !u.startsWith("https://")) { r->send(400, "text/plain", "bad url"); return; }
     UI::tryStation(r->hasParam("name", true) ? r->getParam("name", true)->value() : u, u);
     r->send(204);
+  });
+  // how a name looks on the LED screen: {"w":px,"max":px,"fb":hex}
+  server.on("/api/preview", HTTP_GET, [](AsyncWebServerRequest *r) {
+    String t = r->hasParam("t") ? r->getParam("t")->value() : String();
+    if (t.length() > 60) t = t.substring(0, 60);
+    Canvas c; int w = View::preview(t.c_str(), c);
+    char hex[MTX_W * 2 + 1];
+    for (int i = 0; i < MTX_W; i++) sprintf(hex + i * 2, "%02x", c.col[i]);
+    r->send(200, "application/json", String("{\"w\":") + w + ",\"max\":" + MTX_W + ",\"fb\":\"" + hex + "\"}");
   });
   server.on("/api/scan", HTTP_GET, [](AsyncWebServerRequest *r) {
     r->send(200, "application/json", Net::scanJson());

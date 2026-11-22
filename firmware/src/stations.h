@@ -2,10 +2,14 @@
 #include <Arduino.h>
 #include <vector>
 
-struct Station { String name; String url; };
+// disp = optional short name for the LED screen (empty = use name)
+struct Station {
+  String name; String url; String disp;
+  const String &shown() const { return disp.isEmpty() ? name : disp; }
+};
 
 // Stations grouped into named lists, persisted as /stations.json on LittleFS:
-//   {"lists":[{"name":"Favourites","stations":[{"name":..,"url":..}, ...]}, ...]}
+//   {"lists":[{"name":"Favourites","stations":[{"name":..,"url":..,"disp":..}, ...]}, ...]}
 // The old flat-array format is still accepted and becomes one list. Thread-safe.
 namespace Stations {
 constexpr size_t MAX_STATIONS = 300, MAX_LISTS = 20;

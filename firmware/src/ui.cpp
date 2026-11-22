@@ -29,6 +29,7 @@ int apClients = -1;
 // a station being auditioned from the web search (not in any list)
 portMUX_TYPE tryMux = portMUX_INITIALIZER_UNLOCKED;
 char tryName[96], tryUrl[400];
+String playingFull, playingShown;   // station from our lists: full name / LED screen name
 
 void markSettings() { settingsDirty = true; settingsChanged = millis(); }
 
@@ -63,7 +64,8 @@ void tune(int l, int i) {
   Station s;
   if (Stations::get(list, idx, s)) {
     Radio::play(s.name.c_str(), s.url.c_str());
-    View::tuneTo(millis(), s.name.c_str(), idx, n);
+    playingFull = s.name; playingShown = s.shown();
+    View::tuneTo(millis(), playingShown.c_str(), idx, n);
   }
   setMode(Mode::Playing);
   markSettings();
@@ -94,7 +96,7 @@ void showBrowseItem(int dir) {
   int pos = browseSel + (multiList() ? 1 : 0), total = n + (multiList() ? 1 : 0);
   if (browseSel < 0) { View::showBrowse(now, "LISTS", pos, total, dir, View::Icon::Back); return; }
   Station st; Stations::get(browseList, browseSel, st);
-  View::showBrowse(now, (String(browseSel + 1) + " " + st.name).c_str(), pos, total, dir);
+  View::showBrowse(now, (String(browseSel + 1) + " " + st.shown()).c_str(), pos, total, dir);
 }
 void startBrowse(int l, int sel) {
   browseList = l; browseSel = sel;
@@ -155,14 +157,18 @@ void handle(const Action &a) {
       portEXIT_CRITICAL(&tryMux);
       if (md == Mode::Standby) { standby = false; markSettings(); View::wake(millis()); }
       Radio::play(n, u);
+      playingFull = "";
       View::tuneTo(millis(), n, 0, 1);
       setMode(Mode::Playing);
       return;
     }
-    case A::StationsChanged:
+    case A::StationsChanged: {
       clampStation();
+      Station st;   // the playing station may have been given a new screen name
+      if (!playingFull.isEmpty() && Stations::get(list, idx, st)) playingShown = st.shown();
       if (md == Mode::Browse || md == Mode::Lists) backToPlaying();
       return;
+    }
     default: break;
   }
   // knob
@@ -202,7 +208,9 @@ void feedNowPlaying(uint32_t now) {
   auto s = Radio::snapshot();
   bool buffering = s.wantPlaying && !s.running;
   bool stalled = buffering && now - s.sinceMs > 12000;
-  View::setNowPlaying(s.name, s.title, buffering, stalled);
+  // our own station: its screen name; an auditioned one: whatever it is called
+  const char *nm = playingFull == s.name ? playingShown.c_str() : s.name;
+  View::setNowPlaying(nm, s.title, buffering, stalled);
 }
 
 // Wiring test patterns (web: /api/cmd?c=test&v=N, 0 = off)

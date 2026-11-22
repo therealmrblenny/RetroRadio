@@ -521,6 +521,14 @@ bool busy(uint32_t now) {
          (sc == Sc::Tuning && now - scStart < TUNE_MS);
 }
 
+int preview(const char *text, Canvas &out) {
+  Marquee m; m.still = true; m.text = text;
+  Canvas tmp; tmp.clear(); m.draw(tmp, 0);
+  out.clear();
+  for (int x = 0; x < MTX_W; x++) out.column(x, tmp.col[x] & 0x7F);
+  return m.width();
+}
+
 int render(uint32_t now, Canvas &out) {
   // scene hand-offs that happen by themselves
   if (sc == Sc::Waking && now - scStart >= WAKE_MS) {

@@ -19,11 +19,12 @@ struct Lock { Lock() { xSemaphoreTake(mtx, portMAX_DELAY); } ~Lock() { xSemaphor
 
 bool parseStations(JsonArrayConst a, std::vector<Station> &out, String &err) {
   for (JsonObjectConst o : a) {
-    String name = o["name"] | "", url = o["url"] | "";
-    name.trim(); url.trim();
+    String name = o["name"] | "", url = o["url"] | "", disp = o["disp"] | "";
+    name.trim(); url.trim(); disp.trim();
+    if (disp.length() > 40) disp = disp.substring(0, 40);
     if (!url.startsWith("http://") && !url.startsWith("https://")) { err = "bad url: " + url; return false; }
     if (name.isEmpty()) name = url;
-    out.push_back({name, url});
+    out.push_back({name, url, disp});
   }
   return true;
 }
@@ -59,7 +60,7 @@ String serialize(const std::vector<List> &v) {
     JsonObject lo = la.add<JsonObject>();
     lo["name"] = l.name;
     JsonArray a = lo["stations"].to<JsonArray>();
-    for (auto &s : l.st) { JsonObject o = a.add<JsonObject>(); o["name"] = s.name; o["url"] = s.url; }
+    for (auto &s : l.st) { JsonObject o = a.add<JsonObject>(); o["name"] = s.name; o["url"] = s.url; if (!s.disp.isEmpty()) o["disp"] = s.disp; }
   }
   String out; serializeJson(doc, out); return out;
 }
