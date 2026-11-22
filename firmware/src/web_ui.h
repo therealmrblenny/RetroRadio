@@ -248,7 +248,7 @@ async function find(order,label,name=''){
   try{
     let p=`/json/stations/search?limit=40&hidebroken=true&order=${order}&reverse=true&name=${encodeURIComponent(name)}`;
     if(c)p+=`&countrycode=${encodeURIComponent(c)}`;
-    results=(await rb(p)).filter(r=>r.url_resolved&&!r.hls);
+    results=(await rb(p)).filter(r=>r.url_resolved);
     $('sinfo').textContent=results.length?`${label}: ${results.length} station${results.length>1?'s':''}${c?' in '+c:''}. "Try" plays without saving; "Add" saves to "${cur().name}".`:'Nothing found.';
     $('results').innerHTML=results.map((r,i)=>{const ok=/mp3|aac|flac|opus|ogg/i.test(r.codec);
       return `<li><span class="nm">${esc(r.name.trim())}<small>${esc([r.codec,r.bitrate?r.bitrate+'k':'',r.countrycode,r.tags.split(',').slice(0,3).join(' ')].filter(Boolean).join(' · '))}${ok?'':' · may not play'}</small></span>
