@@ -68,7 +68,7 @@ ol,ul{list-style:none;margin:0;padding:0}
   <div class="row"><label class="lbl" for="vol">Volume</label><input type="range" id="vol" min="0" max="21" autocomplete="off" disabled></div>
   <div class="row">
     <button id="prev">&#9664; Prev</button><button id="next">Next &#9654;</button>
-    <button id="sb">Standby</button>
+    <button id="sb">Standby</button><button id="poke" hidden title="Make the sleeping critter do its thing now">Poke critter</button>
   </div>
 </section>
 
@@ -162,6 +162,7 @@ async function poll(){
     if(!brDrag)$('br').value=st.bright;
     $('vol').disabled=$('br').disabled=false;   // only usable once synced to the radio
     $('sb').classList.toggle('on',st.mode==='standby');
+    $('poke').hidden=st.mode!=='standby';
     $('sb').textContent=st.mode==='standby'?'Wake':'Standby';
     $('fc').classList.toggle('on',st.compact);$('fl').classList.toggle('on',!st.compact);
     $('info').textContent=`IP ${st.ip} · WiFi "${st.ssid}" · free heap ${Math.round(st.heap/1024)} kB · PSRAM ${Math.round(st.psram/1024)} kB · up ${Math.round(st.uptime/60)} min · fw ${st.fw}`;
@@ -180,6 +181,7 @@ $('vol').onchange=()=>volDrag=false;
 $('br').oninput=e=>{if(!e.isTrusted)return;brDrag=true;cmd('bright',e.target.value)};
 $('br').onchange=()=>brDrag=false;
 $('prev').onclick=()=>cmd('prev');$('next').onclick=()=>cmd('next');
+$('poke').onclick=()=>cmd('poke');
 $('sb').onclick=()=>cmd('standby',st.mode==='standby'?0:1);
 $('fc').onclick=()=>cmd('font',1);$('fl').onclick=()=>cmd('font',0);
 document.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>cmd('key',b.dataset.k));

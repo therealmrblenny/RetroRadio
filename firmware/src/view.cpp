@@ -426,12 +426,12 @@ void drawVolume(uint32_t now, Canvas &c) {
 }
 
 void drawStandby(uint32_t now, Canvas &c) {
-  Critters::draw(c, critter, Critters::periodFor(clockMin), now - scStart);
+  Critters::draw(c, Critters::periodFor(clockMin), now - scStart);
 }
 
 void drawWaking(uint32_t now, Canvas &c) {
   float p = clamp01((now - scStart) / 550.f);
-  Critters::drawHop(c, critter, p);
+  Critters::drawHop(c, p);
 }
 
 void startTuning(uint32_t now, Tr t, uint32_t dur) {
@@ -510,11 +510,13 @@ void setClock(int minuteOfDay) { clockMin = minuteOfDay; }
 
 void showStandby(uint32_t now, uint32_t seed) {
   critter = (seed & 1) ? Critters::Kind::Frog : Critters::Kind::Cat;
+  Critters::begin(critter, seed >> 1);
   volUntil = 0;
   go(now, Sc::Standby, Tr::Dissolve, 400);
 }
 
 void wake(uint32_t now) { go(now, Sc::Waking); }
+void pokeCritter(uint32_t now) { if (sc == Sc::Standby) Critters::poke(now - scStart); }
 
 bool busy(uint32_t now) {
   return (sc == Sc::Boot && now - scStart < BOOT_MS) || sc == Sc::Waking ||

@@ -147,6 +147,7 @@ void handle(const Action &a) {
       if (a.v && md != Mode::Standby) enterStandby();
       else if (!a.v && md == Mode::Standby) wake();
       return;
+    case A::Poke: View::pokeCritter(millis()); return;
     case A::SetBrightness: bright = constrain(a.v, 0, 7); markSettings(); return;
     case A::SetFont:
       compact = a.v != 0; View::setFont(compact ? Font::Compact : Font::Classic); markSettings(); return;

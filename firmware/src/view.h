@@ -38,6 +38,7 @@ void showBrowse(uint32_t now, const char *label, int pos, int count, int dir, Ic
 void setClock(int minuteOfDay);                   // local time for the standby scenes, -1 = unknown
 // Standby: a cat or frog (seed picks) in a scene for the time of day; the display fades down.
 void showStandby(uint32_t now, uint32_t seed);
+void pokeCritter(uint32_t now);                    // standby creature does its main act now
 void wake(uint32_t now);                          // the creature hops (then the queued tuneTo)
 bool busy(uint32_t now);                          // an intro animation is still running
 

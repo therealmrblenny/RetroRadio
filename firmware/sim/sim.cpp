@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include "../src/view.h"
+#include "../src/critters.h"
 
 struct Step { uint32_t t; std::string label; std::function<void(uint32_t)> fn; };
 
@@ -39,16 +40,23 @@ static std::vector<Step> script() {
   at(1100, "Press: tune", [](uint32_t n) { setNowPlaying("ABC Jazz", "", true, false); tuneTo(n, "ABC Jazz", 1, 3); });
   at(2600, "", [](uint32_t) { setNowPlaying("ABC Jazz", "Miles Davis - So What", false, false); });
   at(9000, "Stream drops", [](uint32_t) { setNowPlaying("ABC Jazz", "", true, true); });
-  at(6000, "Standby: cat, night", [](uint32_t n) { setClock(23 * 60); showStandby(n, 0); });
-  at(9000, "Cat, morning", [](uint32_t) { setClock(7 * 60); });
-  at(9000, "Cat, day (moth)", [](uint32_t) { setClock(12 * 60); });
-  at(10000, "Cat, evening", [](uint32_t) { setClock(19 * 60); });
-  at(9000, "Press: wake", [](uint32_t n) { wake(n); setNowPlaying("ABC Jazz", "", true, false); tuneTo(n, "ABC Jazz", 1, 3); });
-  at(3000, "Standby: frog, night", [](uint32_t n) { setClock(23 * 60); showStandby(n, 1); });
-  at(9000, "Frog, morning", [](uint32_t) { setClock(7 * 60); });
-  at(9000, "Frog, day (fly)", [](uint32_t) { setClock(12 * 60); });
+  // standby runs 40x faster here (acts every ~8-15 s instead of 5-10 min); pokes show each act
+  at(6000, "Standby: cat, day (40x speed)", [](uint32_t n) { Critters::setPace(40); setClock(12 * 60); showStandby(n, 0); });
+  at(3000, "Poke: moth", [](uint32_t n) { pokeCritter(n); });
+  at(30000, "Cat, evening", [](uint32_t) { setClock(19 * 60); });
+  at(2000, "Poke: groom", [](uint32_t n) { pokeCritter(n); });
+  at(20000, "Cat, night", [](uint32_t) { setClock(23 * 60); });
+  at(2000, "Poke: rolls over", [](uint32_t n) { pokeCritter(n); });
+  at(8000, "Press: wake", [](uint32_t n) { wake(n); setNowPlaying("ABC Jazz", "", true, false); tuneTo(n, "ABC Jazz", 1, 3); });
+  at(3000, "Standby: frog, day (40x speed)", [](uint32_t n) { setClock(12 * 60); showStandby(n, 7); });
+  at(3000, "Poke: fly", [](uint32_t n) { pokeCritter(n); });
+  at(40000, "Frog, morning", [](uint32_t) { setClock(7 * 60); });
+  at(2000, "Poke: yawn", [](uint32_t n) { pokeCritter(n); });
   at(15000, "Frog, evening", [](uint32_t) { setClock(19 * 60); });
-  at(9000, "Press: wake", [](uint32_t n) { wake(n); setNowPlaying("ABC Jazz", "", true, false); tuneTo(n, "ABC Jazz", 1, 3); });
+  at(2000, "Poke: ribbit", [](uint32_t n) { pokeCritter(n); });
+  at(20000, "Frog, night", [](uint32_t) { setClock(23 * 60); });
+  at(2000, "Poke: one eye opens", [](uint32_t n) { pokeCritter(n); });
+  at(6000, "Press: wake", [](uint32_t n) { wake(n); setNowPlaying("ABC Jazz", "", true, false); tuneTo(n, "ABC Jazz", 1, 3); Critters::setPace(1); });
   at(3200, "No WiFi: setup hotspot", [](uint32_t n) {
     showPages(n, {{"SETUP", Icon::Wifi}, {"JOIN WIFI"}, {"RetroRadio-Setup"}, {"THEN OPEN"}, {"192.168.4.1"}}, true);
   });

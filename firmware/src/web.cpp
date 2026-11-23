@@ -57,6 +57,7 @@ void handleCmd(AsyncWebServerRequest *req) {
   else if (c == "bright") Input::post(Act::SetBrightness, v);
   else if (c == "font") Input::post(Act::SetFont, v);
   else if (c == "test") UI::setTest(v);
+  else if (c == "poke") Input::post(Act::Poke);
   else if (c == "key") {
     if (sv == "cw") Input::post(Act::TurnCW);
     else if (sv == "ccw") Input::post(Act::TurnCCW);

@@ -6,6 +6,7 @@ enum class Act : uint8_t {
   SetVolume, Play, Next, Prev, Standby, // direct commands (web). Play: v = list << 16 | station
   SetBrightness, SetFont, StationsChanged,
   PlayUrl,                              // audition a search result (see UI::tryStation)
+  Poke,                                 // standby creature: do its main act now
 };
 struct Action { Act type; int32_t v; };
 
