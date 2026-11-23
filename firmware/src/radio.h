@@ -11,6 +11,10 @@ struct Snapshot {
   bool wantPlaying;   // we asked it to play
   bool running;       // decoder is actually running
   uint32_t sinceMs;   // millis() of last play request
+  uint32_t bufFill, bufSize;   // audio input buffer (bytes)
+  uint32_t bufMin;             // lowest fill in the last ~2s
+  uint32_t gapMaxUs;           // longest gap between audio.loop() calls in the last ~2s
+  uint32_t loopMaxUs;          // longest single audio.loop() in the last ~2s
 };
 void begin();
 void play(const char *name, const char *url);

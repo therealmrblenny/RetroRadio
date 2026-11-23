@@ -31,6 +31,8 @@ void sendState(AsyncWebServerRequest *req) {
   d["compact"] = UI::compactFont();
   d["name"] = s.name; d["title"] = s.title; d["codec"] = s.codec; d["bitrate"] = s.bitrate;
   d["playing"] = s.wantPlaying; d["running"] = s.running;
+  d["buf"] = s.bufFill; d["bufSize"] = s.bufSize; d["bufMin"] = s.bufMin;
+  d["gapMaxUs"] = s.gapMaxUs; d["loopMaxUs"] = s.loopMaxUs;
   d["net"] = Net::state() == Net::State::Online ? "online" : Net::state() == Net::State::SetupAP ? "setup hotspot" : "connecting";
   d["ip"] = Net::ip(); d["rssi"] = Net::rssi(); d["ssid"] = Net::ssid();
   d["enc"] = String("A") + digitalRead(PIN_ENC_A) + " B" + digitalRead(PIN_ENC_B) + " SW" + digitalRead(PIN_ENC_SW);

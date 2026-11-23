@@ -58,10 +58,23 @@ void task(void *) {
         case Cmd::Volume: audio.setVolume(m.vol); break;
       }
     }
+    static uint32_t lastT = micros(), winStart = 0, gapMax = 0, loopMax = 0, bufMin = UINT32_MAX;
+    uint32_t t0 = micros();
+    gapMax = max(gapMax, t0 - lastT);
     audio.loop();
+    uint32_t t1 = micros();
+    loopMax = max(loopMax, t1 - t0);
+    lastT = t1;
+    uint32_t fill = audio.inBufferFilled();
+    bufMin = min(bufMin, fill);
     bool running = audio.isRunning();
     bool want;
-    { Lock l; state.running = running; want = state.wantPlaying; }
+    { Lock l; state.running = running; want = state.wantPlaying;
+      state.bufFill = fill; state.bufSize = audio.getInBufferSize();
+      if (millis() - winStart > 2000) {
+        state.bufMin = bufMin; state.gapMaxUs = gapMax; state.loopMaxUs = loopMax;
+        winStart = millis(); gapMax = loopMax = 0; bufMin = UINT32_MAX;
+      } }
     // Auto-reconnect: dropped streams or failed connects retry every 10s
     if (want && !running && WiFi.isConnected() && millis() - lastRetry > 10000) {
       Serial.println("[radio] stream not running - retrying");
