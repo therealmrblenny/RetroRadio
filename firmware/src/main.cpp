@@ -28,6 +28,19 @@ static void serialKeys() {
   }
 }
 
+// Task layout: core 1 is the audio decoder's alone (ESP32-audioI2S task, see Radio::begin).
+// Core 0 runs everything else, by priority: WiFi/lwIP (system, 18+) > UI (screen, knob,
+// net upkeep) 5 > stream fetch/TLS 3 (has ~10 s buffered) > web server 2 (AsyncTCP, platformio.ini).
+static void uiTask(void *) {
+  for (;;) {
+    Net::loop();
+    UI::loop();
+    Web::loop();
+    serialKeys();
+    vTaskDelay(pdMS_TO_TICKS(2));
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -38,12 +51,7 @@ void setup() {
   UI::begin();
   Net::begin();
   Web::begin();
+  xTaskCreatePinnedToCore(uiTask, "ui", 8192, nullptr, 5, nullptr, 0);
 }
 
-void loop() {
-  Net::loop();
-  UI::loop();
-  Web::loop();
-  serialKeys();
-  delay(2);
-}
+void loop() { vTaskDelete(nullptr); }  // Arduino's loop task (core 1) isn't used

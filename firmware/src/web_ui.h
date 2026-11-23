@@ -172,7 +172,7 @@ async function poll(){
       $('wifisec').hidden=!setup;(setup?$('wifislot'):$('wifihome')).appendChild($('wf'));
       if(setup&&!$('wl').options.length)scan();}
   }catch(e){$('ti').textContent='Radio not reachable…'}
-  setTimeout(poll,250);
+  setTimeout(poll,1000);
 }
 
 // ---- controls ----

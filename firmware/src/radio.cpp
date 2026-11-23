@@ -91,10 +91,16 @@ void Radio::begin() {
   mtx = xSemaphoreCreateMutex();
   queue = xQueueCreate(4, sizeof(Msg));
   Audio::audio_info_callback = onAudio;
+  // HLS streams (ABC) download each ~10 s segment in a burst; with the decode task on
+  // core 0 next to WiFi/lwIP it gets starved and the ~90 ms of I2S DMA runs dry.
+  // More DMA headroom (24 x 256 frames ~ 130 ms) + decode alone on core 1 (see main.cpp).
+  audio.settings.DMA_DESC_NUM = 24;
   audio.setPinout(PIN_I2S_BCK, PIN_I2S_WS, PIN_I2S_DOUT);
+  audio.setAudioTaskCore(1);
   audio.setVolumeSteps(VOL_MAX);
   audio.setConnectionTimeout(5000, 8000);
-  xTaskCreatePinnedToCore(task, "radio", 12288, nullptr, 2, nullptr, 1);
+  // stream fetch + TLS: core 0, below the UI so a download burst can't stall the screen
+  xTaskCreatePinnedToCore(task, "radio", 12288, nullptr, 3, nullptr, 0);
 }
 
 void Radio::play(const char *name, const char *url) {
