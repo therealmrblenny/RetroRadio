@@ -52,3 +52,14 @@ the board's 3.3 V, and every ground must be joined.
 Matte black PLA for `body`, `base`, `panel` and `grid`; frosted transparent PETG for
 `window` (`window_test` is a small test piece). M3 heat-set inserts and M3 screws.
 Optional: window tint film over the PETG for a black-when-off display.
+
+## Licence
+
+- **Firmware and tools** (`firmware/`): MIT. See `LICENSE`.
+- **Case design, shopping list and wiring sheet** (`case/`, `shopping-list.html`,
+  `wiring-diagram.html`): Creative Commons Attribution 4.0 (CC BY 4.0). See
+  `case/LICENSE`. Print it, remix it, sell it. Just credit "RetroRadio by Damian
+  Macrae" and link back.
+- The firmware pulls in [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S)
+  at build time, which is GPL-3.0, so a compiled firmware binary you hand to someone
+  else falls under GPL-3.0 terms (offer the source; this repo is it).
