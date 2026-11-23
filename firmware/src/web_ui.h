@@ -65,7 +65,7 @@ ol,ul{list-style:none;margin:0;padding:0}
 
 <section>
   <h2>Controls</h2>
-  <div class="row"><label class="lbl" for="vol">Volume</label><input type="range" id="vol" min="0" max="21"></div>
+  <div class="row"><label class="lbl" for="vol">Volume</label><input type="range" id="vol" min="0" max="21" autocomplete="off" disabled></div>
   <div class="row">
     <button id="prev">&#9664; Prev</button><button id="next">Next &#9654;</button>
     <button id="sb">Standby</button>
@@ -110,7 +110,7 @@ ol,ul{list-style:none;margin:0;padding:0}
 
 <section>
   <h2>Settings</h2>
-  <div class="row"><label class="lbl" for="br">Brightness</label><input type="range" id="br" min="0" max="7"></div>
+  <div class="row"><label class="lbl" for="br">Brightness</label><input type="range" id="br" min="0" max="7" autocomplete="off" disabled></div>
   <div class="row"><span class="lbl">Text style</span>
     <div class="seg" role="group" aria-label="Text style"><button id="fc">COMPACT CAPS</button><button id="fl">Classic</button></div>
   </div>
@@ -157,9 +157,10 @@ async function poll(){
     $('codec').textContent=st.codec?st.codec+(st.bitrate?' '+Math.round(st.bitrate/1000)+'k':''):'';
     $('volv').textContent=st.vol;
     $('net').textContent=st.net==='online'?('WiFi '+st.rssi+' dBm'):st.net;
+    $('vol').max=st.volMax;
     if(!volDrag)$('vol').value=st.vol;
     if(!brDrag)$('br').value=st.bright;
-    $('vol').max=st.volMax;
+    $('vol').disabled=$('br').disabled=false;   // only usable once synced to the radio
     $('sb').classList.toggle('on',st.mode==='standby');
     $('sb').textContent=st.mode==='standby'?'Wake':'Standby';
     $('fc').classList.toggle('on',st.compact);$('fl').classList.toggle('on',!st.compact);
@@ -174,9 +175,9 @@ async function poll(){
 }
 
 // ---- controls ----
-$('vol').oninput=e=>{volDrag=true;cmd('vol',e.target.value)};
+$('vol').oninput=e=>{if(!e.isTrusted)return;volDrag=true;cmd('vol',e.target.value)};
 $('vol').onchange=()=>volDrag=false;
-$('br').oninput=e=>{brDrag=true;cmd('bright',e.target.value)};
+$('br').oninput=e=>{if(!e.isTrusted)return;brDrag=true;cmd('bright',e.target.value)};
 $('br').onchange=()=>brDrag=false;
 $('prev').onclick=()=>cmd('prev');$('next').onclick=()=>cmd('next');
 $('sb').onclick=()=>cmd('standby',st.mode==='standby'?0:1);
